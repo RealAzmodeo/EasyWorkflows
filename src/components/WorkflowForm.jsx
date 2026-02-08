@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Card } from './ui/components';
 
-export const WorkflowForm = ({ workflow, onSubmit, isProcessing }) => {
+export const WorkflowForm = ({ workflow, onSubmit, isProcessing, urlToFile }) => {
     const [values, setValues] = useState({});
+    const [dragActive, setDragActive] = useState(null);
 
     // Initialize defaults
     useEffect(() => {
@@ -21,6 +22,44 @@ export const WorkflowForm = ({ workflow, onSubmit, isProcessing }) => {
 
     const handleFileChange = (id, file) => {
         setValues(prev => ({ ...prev, [id]: file }));
+    };
+
+    const handleDragOver = (e, id) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (dragActive !== id) setDragActive(id);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(null);
+    };
+
+    const handleDrop = async (e, id) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(null);
+
+        // Check for Gallery Drop (JSON)
+        const jsonData = e.dataTransfer.getData('application/json');
+        if (jsonData) {
+            try {
+                const imgData = JSON.parse(jsonData);
+                if (imgData.url && urlToFile) {
+                    const file = await urlToFile(imgData.url, imgData.filename || 'generated.png');
+                    handleFileChange(id, file);
+                }
+            } catch (err) {
+                console.error("Failed to parse dropped gallery item", err);
+            }
+            return;
+        }
+
+        // Check for File Drop
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFileChange(id, e.dataTransfer.files[0]);
+        }
     };
 
     const handleSubmit = (e) => {
@@ -61,10 +100,16 @@ export const WorkflowForm = ({ workflow, onSubmit, isProcessing }) => {
                                     style={{
                                         padding: '1rem',
                                         borderStyle: 'dashed',
+                                        borderColor: dragActive === input.id ? 'var(--primary)' : 'rgba(255,255,255,0.2)',
                                         textAlign: 'center',
-                                        cursor: 'pointer'
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        background: dragActive === input.id ? 'rgba(74, 222, 128, 0.1)' : 'transparent'
                                     }}
                                     onClick={() => document.getElementById(`file-${input.id}`).click()}
+                                    onDragOver={(e) => handleDragOver(e, input.id)}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={(e) => handleDrop(e, input.id)}
                                 >
                                     {values[input.id] ? (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -72,10 +117,16 @@ export const WorkflowForm = ({ workflow, onSubmit, isProcessing }) => {
                                                 src={typeof values[input.id] === 'string' ? values[input.id] : URL.createObjectURL(values[input.id])}
                                                 style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
                                             />
-                                            <span>{values[input.id].name || 'Image selected'}</span>
+                                            <div style={{ textAlign: 'left' }}>
+                                                <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Image selected</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{values[input.id].name}</div>
+                                            </div>
                                         </div>
                                     ) : (
-                                        <span style={{ color: 'var(--text-secondary)' }}>Click to upload image</span>
+                                        <div style={{ color: 'var(--text-secondary)', padding: '1rem 0' }}>
+                                            <div style={{ marginBottom: '0.5rem', fontSize: '1.2rem' }}>🖼️</div>
+                                            Click to upload or Drag from Gallery
+                                        </div>
                                     )}
                                     <input
                                         id={`file-${input.id}`}

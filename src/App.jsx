@@ -5,6 +5,9 @@ import { WorkflowSelector } from './components/WorkflowSelector';
 import { WorkflowForm } from './components/WorkflowForm';
 import { Button } from './components/ui/components';
 import './index.css';
+import { Gallery } from './components/Gallery';
+
+// ... (previous imports)
 
 function App() {
   const [status, setStatus] = useState('disconnected');
@@ -12,8 +15,16 @@ function App() {
   const [currentImage, setCurrentImage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [history, setHistory] = useState([]); // Store all generated images
 
   const api = useRef(new ComfyApi());
+
+  // Helper: Convert URL to File object for re-upload
+  const urlToFile = async (url, filename) => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: blob.type });
+  };
 
   useEffect(() => {
     const comfy = api.current;
@@ -33,8 +44,12 @@ function App() {
       if (images && images.length > 0) {
         const img = images[0];
         const url = `/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
+
         setCurrentImage(url);
         setLogs(prev => [...prev, 'Generation Complete']);
+
+        // Add to history
+        setHistory(prev => [{ url, filename: img.filename, type: img.type, subfolder: img.subfolder }, ...prev]);
       }
     };
 
@@ -67,6 +82,14 @@ function App() {
           // Store the upload result (filename) for the prompt
           inputs[inputConfig.id] = res.name;
         }
+
+        // Handle Seed: If empty or 0, generate random
+        if (inputConfig.id === 'seed') {
+          const val = inputs[inputConfig.id];
+          if (!val || val === 0 || val === '') {
+            inputs[inputConfig.id] = Math.floor(Math.random() * 100000000000000);
+          }
+        }
       }
 
       // 2. Prepare Prompt JSON
@@ -89,7 +112,7 @@ function App() {
       await api.current.queuePrompt(finalWorkflow);
 
       setLogs(prev => [...prev, 'Workflow queued successfully!']);
-      setIsProcessing(true); // Keep processing true until execution finishes
+      setIsProcessing(true);
 
     } catch (err) {
       console.error(err);
@@ -99,6 +122,11 @@ function App() {
   };
 
   const activeWorkflow = workflows.find(w => w.id === selectedWorkflowId);
+
+  const handleGalleryDragStart = (e, img) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(img));
+    e.dataTransfer.effectAllowed = 'copy';
+  };
 
   return (
     <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
@@ -141,6 +169,7 @@ function App() {
                 workflow={activeWorkflow}
                 onSubmit={handleWorkflowSubmit}
                 isProcessing={isProcessing}
+                urlToFile={urlToFile} // Pass helper to form
               />
             </div>
           )}
@@ -173,6 +202,9 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Session Gallery */}
+      <Gallery images={history} onDragStart={handleGalleryDragStart} />
     </div>
   );
 }
