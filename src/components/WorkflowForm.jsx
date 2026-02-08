@@ -7,11 +7,19 @@ export const WorkflowForm = ({ workflow, onSubmit, isProcessing, urlToFile }) =>
 
     useEffect(() => {
         if (workflow) {
-            const defaults = {};
-            workflow.inputs.forEach(input => {
-                defaults[input.id] = input.defaultValue || '';
+            setValues(prev => {
+                const nextValues = {};
+                workflow.inputs.forEach(input => {
+                    // Only keep previous value if it's an image (for chaining) and it exists
+                    if (input.type === 'image' && prev[input.id]) {
+                        nextValues[input.id] = prev[input.id];
+                    } else {
+                        // For everything else (especially prompts), use the new workflow default
+                        nextValues[input.id] = input.defaultValue || '';
+                    }
+                });
+                return nextValues;
             });
-            setValues(prev => ({ ...defaults, ...prev }));
         }
     }, [workflow]);
 
@@ -48,11 +56,38 @@ export const WorkflowForm = ({ workflow, onSubmit, isProcessing, urlToFile }) =>
         }
     };
 
+    const handleSwapImages = () => {
+        const imageInputs = workflow.inputs.filter(i => i.type === 'image');
+        if (imageInputs.length >= 2) {
+            const id1 = imageInputs[0].id;
+            const id2 = imageInputs[1].id;
+            setValues(prev => ({
+                ...prev,
+                [id1]: prev[id2],
+                [id2]: prev[id1]
+            }));
+        }
+    };
+
     if (!workflow) return null;
+
+    const hasMultipleImages = workflow.inputs.filter(i => i.type === 'image').length >= 2;
 
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(values); }}>
             <Card title="Input Parameters">
+                {hasMultipleImages && (
+                    <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleSwapImages}
+                            style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+                        >
+                            ⇅ Swap Images
+                        </Button>
+                    </div>
+                )}
                 {workflow.inputs.map(input => (
                     <div key={input.id}>
                         {input.type === 'text' && (

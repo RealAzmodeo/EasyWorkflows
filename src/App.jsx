@@ -3,7 +3,7 @@ import { ComfyApi } from './lib/comfyApi';
 import { workflows } from './config/workflows';
 import { WorkflowSelector } from './components/WorkflowSelector';
 import { WorkflowForm } from './components/WorkflowForm';
-import { Button } from './components/ui/components';
+import { Button, Card } from './components/ui/components';
 import './index.css';
 import { Gallery } from './components/Gallery';
 
