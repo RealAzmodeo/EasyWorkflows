@@ -5,13 +5,8 @@ export const Gallery = ({ images, onDragStart }) => {
 
     if (!images || images.length === 0) return null;
 
-    const openModal = (index) => {
-        setSelectedImageIndex(index);
-    };
-
-    const closeModal = () => {
-        setSelectedImageIndex(null);
-    };
+    const openModal = (index) => setSelectedImageIndex(index);
+    const closeModal = () => setSelectedImageIndex(null);
 
     const navigate = (direction) => {
         if (selectedImageIndex === null) return;
@@ -24,43 +19,45 @@ export const Gallery = ({ images, onDragStart }) => {
     const selectedImage = selectedImageIndex !== null ? images[selectedImageIndex] : null;
 
     return (
-        <div className="gallery-container" style={{ marginTop: '2rem' }}>
-            <h3 style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Session Gallery</h3>
+        <div className="gallery-container" style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>
+            <h3 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '1rem', letterSpacing: '0.05em' }}>
+                Session History
+            </h3>
 
             {/* Grid View */}
             <div
                 className="gallery-grid"
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                    gap: '1rem',
-                    padding: '1rem',
-                    background: 'rgba(0,0,0,0.2)',
-                    borderRadius: 'var(--radius-md)'
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                    gap: '0.75rem',
                 }}
             >
                 {images.map((img, index) => (
                     <div
                         key={index}
-                        className="gallery-item glass-panel"
                         style={{
-                            padding: '0.5rem',
+                            aspectRatio: '1/1',
                             cursor: 'pointer',
-                            transition: 'transform 0.2s',
-                            position: 'relative'
+                            overflow: 'hidden',
+                            borderRadius: 'var(--radius)',
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg-sidebar)',
+                            transition: 'opacity 0.2s'
                         }}
                         draggable
                         onDragStart={(e) => onDragStart(e, img)}
                         onClick={() => openModal(index)}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                     >
                         <img
                             src={img.url}
                             alt={`Generated ${index}`}
                             style={{
                                 width: '100%',
-                                height: '120px',
+                                height: '100%',
                                 objectFit: 'cover',
-                                borderRadius: '4px',
                                 pointerEvents: 'none'
                             }}
                         />
@@ -68,29 +65,26 @@ export const Gallery = ({ images, onDragStart }) => {
                 ))}
             </div>
 
-            {/* Lightbox Modal */}
+            {/* Modal */}
             {selectedImage && (
                 <div
-                    className="modal-overlay"
                     style={{
                         position: 'fixed',
                         top: 0,
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(0,0,0,0.85)',
+                        background: 'rgba(0,0,0,0.9)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        zIndex: 1000,
-                        backdropFilter: 'blur(5px)'
+                        zIndex: 2000,
                     }}
                     onClick={closeModal}
                 >
                     <div
-                        className="modal-content"
-                        style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%' }}
-                        onClick={(e) => e.stopPropagation()} // Prevent close when clicking content
+                        style={{ position: 'relative', maxWidth: '95%', maxHeight: '95%' }}
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <img
                             src={selectedImage.url}
@@ -98,8 +92,8 @@ export const Gallery = ({ images, onDragStart }) => {
                             style={{
                                 maxWidth: '100%',
                                 maxHeight: '90vh',
-                                borderRadius: '8px',
-                                boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                                display: 'block',
+                                borderRadius: '2px'
                             }}
                         />
 
@@ -108,62 +102,44 @@ export const Gallery = ({ images, onDragStart }) => {
                             style={{
                                 position: 'absolute',
                                 top: '-40px',
-                                right: '-40px',
+                                right: 0,
                                 background: 'transparent',
                                 border: 'none',
                                 color: 'white',
-                                fontSize: '2rem',
-                                cursor: 'pointer'
+                                fontSize: '1.5rem',
+                                cursor: 'pointer',
+                                padding: '10px'
                             }}
                         >
-                            ×
+                            Close
                         </button>
 
-                        {/* Navigation Buttons */}
-                        {selectedImageIndex > 0 && (
+                        {/* Navigation */}
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '-50px',
+                            left: 0,
+                            right: 0,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            gap: '2rem',
+                            color: 'white'
+                        }}>
                             <button
                                 onClick={() => navigate(-1)}
-                                style={{
-                                    position: 'absolute',
-                                    left: '-60px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'rgba(255,255,255,0.1)',
-                                    border: 'none',
-                                    color: 'white',
-                                    padding: '1rem',
-                                    borderRadius: '50%',
-                                    cursor: 'pointer',
-                                    fontSize: '1.5rem'
-                                }}
+                                disabled={selectedImageIndex === 0}
+                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem 1rem', cursor: 'pointer', opacity: selectedImageIndex === 0 ? 0.3 : 1 }}
                             >
-                                ‹
+                                Previous
                             </button>
-                        )}
-
-                        {selectedImageIndex < images.length - 1 && (
+                            <span style={{ alignSelf: 'center', fontSize: '0.9rem' }}>{selectedImageIndex + 1} / {images.length}</span>
                             <button
                                 onClick={() => navigate(1)}
-                                style={{
-                                    position: 'absolute',
-                                    right: '-60px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'rgba(255,255,255,0.1)',
-                                    border: 'none',
-                                    color: 'white',
-                                    padding: '1rem',
-                                    borderRadius: '50%',
-                                    cursor: 'pointer',
-                                    fontSize: '1.5rem'
-                                }}
+                                disabled={selectedImageIndex === images.length - 1}
+                                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem 1rem', cursor: 'pointer', opacity: selectedImageIndex === images.length - 1 ? 0.3 : 1 }}
                             >
-                                ›
+                                Next
                             </button>
-                        )}
-
-                        <div style={{ textAlign: 'center', color: '#ccc', marginTop: '1rem' }}>
-                            {selectedImageIndex + 1} / {images.length}
                         </div>
                     </div>
                 </div>

@@ -16,8 +16,15 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [logs, setLogs] = useState([]);
   const [history, setHistory] = useState([]); // Store all generated images
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
   const api = useRef(new ComfyApi());
+
+  // Apply theme to body
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // Helper: Convert URL to File object for re-upload
   const urlToFile = async (url, filename) => {
@@ -139,83 +146,116 @@ function App() {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   return (
-    <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-      <header style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1>ComfyUI <span style={{ color: 'var(--primary)' }}>Studio</span></h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Premium Workflow Interface</p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span className={`status-indicator status-${status}`}></span>
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-            {status}
-          </span>
-        </div>
-      </header>
-
-      <main style={{ display: 'grid', gridTemplateColumns: selectedWorkflowId ? '1fr 1fr' : '1fr', gap: '2rem' }}>
-
-        {/* Left Column: Selection & Form */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {!selectedWorkflowId ? (
-            <div className="animate-fade-in">
-              <h2 style={{ marginBottom: '1.5rem' }}>Select Workflow</h2>
-              <WorkflowSelector
-                workflows={workflows}
-                selectedId={selectedWorkflowId}
-                onSelect={setSelectedWorkflowId}
-              />
-            </div>
-          ) : (
-            <div className="animate-slide-in">
-              <Button
-                onClick={() => setSelectedWorkflowId(null)}
-                variant="secondary"
-                style={{ marginBottom: '1rem', background: 'transparent', paddingLeft: 0 }}
-              >
-                ← Back to Workflows
-              </Button>
-              <WorkflowForm
-                workflow={activeWorkflow}
-                onSubmit={handleWorkflowSubmit}
-                isProcessing={isProcessing}
-                urlToFile={urlToFile} // Pass helper to form
-              />
-            </div>
-          )}
+    <div className="app-container">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div style={{ padding: '0 1rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '1rem', margin: 0 }}>Comfy Studio</h2>
+          <button
+            onClick={toggleTheme}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              color: 'var(--text-secondary)'
+            }}
+            title="Toggle Light/Dark Mode"
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
         </div>
 
-        {/* Right Column: Preview */}
-        {selectedWorkflowId && (
-          <div className="glass-panel" style={{ minHeight: '600px', display: 'flex', flexDirection: 'column', padding: '2rem' }}>
-            <h3 style={{ marginTop: 0 }}>Preview</h3>
+        <WorkflowSelector
+          workflows={workflows}
+          selectedId={selectedWorkflowId}
+          onSelect={setSelectedWorkflowId}
+        />
 
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', overflow: 'hidden', position: 'relative' }}>
-              {currentImage ? (
-                <img src={currentImage} alt="Generated" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-              ) : (
-                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  {isProcessing ? (
-                    <div className="loader">Processing...</div>
-                  ) : (
-                    <p>Generated image will appear here</p>
+        <div style={{ marginTop: 'auto', padding: '1rem', borderTop: '1px solid var(--border)', fontSize: '0.8rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span className={`status-indicator status-${status}`}></span>
+            <span style={{ color: 'var(--text-secondary)' }}>{status}</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="main-content">
+        {!selectedWorkflowId ? (
+          <div className="fade-in" style={{ textAlign: 'center', marginTop: '10vh' }}>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Welcome to Comfy Studio</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Select a workflow from the sidebar to get started.</p>
+          </div>
+        ) : (
+          <div className="fade-in">
+            <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h1 style={{ margin: 0 }}>{activeWorkflow.name}</h1>
+                <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 0' }}>{activeWorkflow.description}</p>
+              </div>
+            </header>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
+              {/* Form Section */}
+              <section>
+                <WorkflowForm
+                  workflow={activeWorkflow}
+                  onSubmit={handleWorkflowSubmit}
+                  isProcessing={isProcessing}
+                  urlToFile={urlToFile}
+                />
+
+                {/* Session Gallery integrated below the form or at bottom */}
+                <Gallery images={history} onDragStart={handleGalleryDragStart} />
+              </section>
+
+              {/* Preview Section */}
+              <section>
+                <Card title="Output Preview" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'var(--bg-sidebar)',
+                    borderRadius: 'var(--radius)',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}>
+                    {currentImage ? (
+                      <img src={currentImage} alt="Generated" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        {isProcessing ? "Processing generation..." : "Result will appear here"}
+                      </div>
+                    )}
+                  </div>
+
+                  {logs.length > 0 && (
+                    <div style={{
+                      marginTop: '1rem',
+                      padding: '0.75rem',
+                      background: 'var(--bg-sidebar)',
+                      borderRadius: 'var(--radius)',
+                      fontSize: '0.8rem',
+                      fontFamily: 'monospace',
+                      color: 'var(--text-secondary)',
+                      maxHeight: '100px',
+                      overflowY: 'auto'
+                    }}>
+                      {logs.map((log, i) => <div key={i}>{log}</div>)}
+                    </div>
                   )}
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: '1rem', height: '100px', overflowY: 'auto', fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-              {logs.map((log, i) => (
-                <div key={i}>{log}</div>
-              ))}
+                </Card>
+              </section>
             </div>
           </div>
         )}
       </main>
-
-      {/* Session Gallery */}
-      <Gallery images={history} onDragStart={handleGalleryDragStart} />
     </div>
   );
 }
