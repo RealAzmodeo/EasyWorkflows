@@ -48,14 +48,25 @@ function App() {
         setCurrentImage(url);
         setLogs(prev => [...prev, 'Generation Complete']);
 
-        // Add to history
-        setHistory(prev => [{ url, filename: img.filename, type: img.type, subfolder: img.subfolder }, ...prev]);
+        // Add to history (deduplicate)
+        setHistory(prev => {
+          // Check if the latest image is the same
+          if (prev.length > 0 && prev[0].filename === img.filename) return prev;
+          return [{ url, filename: img.filename, type: img.type, subfolder: img.subfolder }, ...prev];
+        });
       }
     };
 
     comfy.on('status', handleStatus);
     comfy.on('progress', handleProgress);
     comfy.on('executed', handleExecuted);
+
+    // Also log execution errors
+    comfy.on('execution_error', (data) => {
+      console.error('WS Execution Error:', data);
+      setLogs(prev => [...prev, `Error: ${data.exception_type} - ${data.exception_message}`]);
+      setIsProcessing(false);
+    });
 
     comfy.connect();
 

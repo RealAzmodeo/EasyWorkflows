@@ -75,15 +75,37 @@ export const WorkflowForm = ({ workflow, onSubmit, isProcessing, urlToFile }) =>
                 {workflow.inputs.map(input => (
                     <div key={input.id} style={{ marginBottom: '1.5rem' }}>
                         {input.type === 'text' && (
-                            <Input
-                                label={input.label}
-                                value={values[input.id] || ''}
-                                onChange={(e) => handleChange(input.id, e.target.value)}
-                                placeholder={input.placeholder}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <Input
+                                    label={input.label}
+                                    value={values[input.id] || ''}
+                                    onChange={(e) => handleChange(input.id, e.target.value)}
+                                    placeholder={input.placeholder}
+                                />
+                                {input.id === 'prompt' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChange(input.id, input.defaultValue)}
+                                        style={{
+                                            position: 'absolute',
+                                            right: 0,
+                                            top: 0,
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--primary)',
+                                            fontSize: '0.8rem',
+                                            cursor: 'pointer',
+                                            padding: '0.2rem 0.5rem',
+                                        }}
+                                        title="Reset to default prompt"
+                                    >
+                                        ↺ Reset
+                                    </button>
+                                )}
+                            </div>
                         )}
 
-                        {input.type === 'number' && (
+                        {input.type === 'number' && input.id !== 'seed' && (
                             <Input
                                 label={input.label}
                                 type="number"
