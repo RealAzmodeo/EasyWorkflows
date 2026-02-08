@@ -1,0 +1,195 @@
+/**
+ * ComfyUI API Wrapper
+ * Handles WebSocket connection and HTTP requests to ComfyUI backend.
+ */
+export class ComfyApi {
+    constructor() {
+        // Use relative path - proxy will handle it
+        this.host = window.location.host;
+        this.clientId = crypto.randomUUID();
+        this.socket = null;
+        this.status = 'disconnected';
+        this.queueRemaining = 0;
+        this.eventListeners = {
+            'status': [],
+            'progress': [],
+            'executed': [],
+            'execution_start': [],
+            'execution_error': [],
+            'execution_cached': []
+        };
+    }
+
+    /**
+     * Connect to ComfyUI WebSocket
+     */
+    connect() {
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${this.host}/ws?clientId=${this.clientId}`;
+
+        console.log(`Connecting to ComfyUI at ${wsUrl}...`);
+
+        this.socket = new WebSocket(wsUrl);
+
+        this.socket.addEventListener('open', () => {
+            console.log('Connected to ComfyUI');
+            this.status = 'connected';
+            this._trigger('status', { status: 'connected' });
+        });
+
+        this.socket.addEventListener('message', (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                this._handleMessage(msg);
+            } catch (e) {
+                console.error('Error parsing WebSocket message:', e);
+            }
+        });
+
+        this.socket.addEventListener('close', () => {
+            console.log('Disconnected from ComfyUI');
+            this.status = 'disconnected';
+            this._trigger('status', { status: 'disconnected' });
+            // Attempt reconnect after 5s
+            setTimeout(() => this.connect(), 5000);
+        });
+
+        this.socket.addEventListener('error', (err) => {
+            console.error('WebSocket error:', err);
+            this.status = 'error';
+            this._trigger('status', { status: 'error', error: err });
+        });
+    }
+
+    /**
+     * Disconnect WebSocket
+     */
+    disconnect() {
+        if (this.socket) {
+            this.socket.close();
+            this.socket = null;
+        }
+    }
+
+    /**
+     * Send a prompt (workflow) to ComfyUI
+     * @param {Object} prompt - The workflow API JSON (output of "Save (API Format)")
+     * @returns {Promise<Object>} - The response containing prompt_id
+     */
+    async queuePrompt(prompt) {
+        const res = await fetch(`/prompt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client_id: this.clientId,
+                prompt: prompt
+            })
+        });
+
+        if (!res.ok) {
+            throw new Error(`ComfyUI Error: ${res.status} ${res.statusText}`);
+        }
+
+        return await res.json();
+    }
+
+    /**
+     * Upload an image to ComfyUI
+     * @param {File} file - The file object to upload
+     * @param {String} type - 'input', 'temp', or 'output' (default: input)
+     * @returns {Promise<Object>} - The response containing name, subfolder, type
+     */
+    async uploadImage(file, type = 'input') {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('type', type);
+
+        const res = await fetch(`/upload/image`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!res.ok) {
+            throw new Error(`Upload Error: ${res.status} ${res.statusText}`);
+        }
+
+        return await res.json();
+    }
+
+    /**
+     * Interrupt current generation
+     */
+    async interrupt() {
+        await fetch(`http://${this.host}/interrupt`, { method: 'POST' });
+    }
+
+    /**
+     * Clear the queue
+     */
+    async clearQueue() {
+        await fetch(`http://${this.host}/queue`, { method: 'POST', body: JSON.stringify({ clear: true }) });
+    }
+
+    /**
+     * Get history of a prompt
+     * @param {String} promptId 
+     */
+    async getHistory(promptId) {
+        const res = await fetch(`http://${this.host}/history/${promptId}`);
+        return await res.json();
+    }
+
+    /**
+     * Get system stats
+     */
+    async getSystemStats() {
+        const res = await fetch(`http://${this.host}/system_stats`);
+        return await res.json();
+    }
+
+    // --- Event Handling ---
+
+    on(event, callback) {
+        if (this.eventListeners[event]) {
+            this.eventListeners[event].push(callback);
+        }
+    }
+
+    off(event, callback) {
+        if (this.eventListeners[event]) {
+            this.eventListeners[event] = this.eventListeners[event].filter(cb => cb !== callback);
+        }
+    }
+
+    _trigger(event, data) {
+        if (this.eventListeners[event]) {
+            this.eventListeners[event].forEach(cb => cb(data));
+        }
+    }
+
+    _handleMessage(msg) {
+        switch (msg.type) {
+            case 'status':
+                this.queueRemaining = msg.data.status.exec_info.queue_remaining;
+                this._trigger('status', { queueRemaining: this.queueRemaining });
+                break;
+            case 'progress':
+                this._trigger('progress', msg.data);
+                break;
+            case 'executing':
+                this._trigger('execution_start', msg.data);
+                break;
+            case 'executed':
+                this._trigger('executed', msg.data);
+                break;
+            case 'execution_error':
+                this._trigger('execution_error', msg.data);
+                break;
+            default:
+                // console.log('Unhandled message type:', msg.type, msg);
+                break;
+        }
+    }
+}
