@@ -47,7 +47,7 @@ export const WorkflowForm = ({
                                 type="button"
                                 variant="secondary"
                                 onClick={handleSwapImages}
-                                style={{ fontSize: '0.6rem', padding: '0.15rem 0.4rem', borderRadius: '4px' }}
+                                style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', borderRadius: '6px' }}
                             >
                                 ⇅ SWAP
                             </Button>
@@ -55,13 +55,13 @@ export const WorkflowForm = ({
                     </div>
                     <div className="horizontal-inputs" style={{
                         display: 'flex',
-                        gap: '0.75rem',
+                        gap: '1rem',
                         overflowX: 'auto',
-                        paddingBottom: '0.5rem',
+                        paddingBottom: '0.8rem',
                         scrollbarWidth: 'none'
                     }}>
                         {imageInputs.map(input => (
-                            <div key={input.id} style={{ minWidth: '110px', flex: '0 0 110px' }}>
+                            <div key={input.id} style={{ minWidth: '140px', flex: '0 0 140px' }}>
                                 <label style={{ display: 'block', fontSize: '0.6rem', marginBottom: '0.3rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                                     {input.label}
                                 </label>
@@ -134,11 +134,11 @@ export const WorkflowForm = ({
                                     background: 'transparent',
                                     border: 'none',
                                     color: 'var(--primary)',
-                                    fontSize: '0.65rem',
+                                    fontSize: '0.8rem',
                                     cursor: 'pointer',
-                                    fontWeight: '600',
+                                    fontWeight: '700',
                                     zIndex: 2,
-                                    padding: '4px'
+                                    padding: '8px'
                                 }}
                             >
                                 RESET

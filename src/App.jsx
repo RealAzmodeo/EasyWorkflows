@@ -295,7 +295,7 @@ function App() {
           </div>
         ) : (
           <div className="fade-in">
-            <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <header className="mobile-hide" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h1 style={{ margin: 0 }}>{activeWorkflow.name}</h1>
                 <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 0', display: 'none' }}>{activeWorkflow.description}</p>

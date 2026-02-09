@@ -107,11 +107,12 @@ h2 {
 }
 
 h3 {
-  font-size: 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
 }
 
 /* Notion-style UI Components */
@@ -275,7 +276,23 @@ textarea:focus {
   }
 
   h1 {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
+  }
+
+  .main-content {
+    padding: 1rem;
+    padding-top: 4rem;
+  }
+
+  /* Hide redundant page headers in mobile vertical stack */
+  .mobile-hide {
+    display: none !important;
+  }
+
+  /* Mobile Labels */
+  label {
+    font-size: 0.75rem !important;
+    font-weight: 600;
   }
 }
 
@@ -350,18 +367,19 @@ textarea:focus {
 }
 
 .action-btn {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   border: none;
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
+  border-radius: 10px;
+  width: 44px;
+  /* Improved hit area for thumb */
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1rem;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 1.1rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .action-btn:hover {
