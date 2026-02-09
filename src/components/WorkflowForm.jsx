@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Button, Input } from './ui/components';
+import { FilePreview } from './FilePreview';
+import { ImageComparisonSlider } from './ImageComparisonSlider';
 
 export const WorkflowForm = ({
     workflow,
     description,
-    values,
+    values = {},
     onChange,
     onFileChange,
     onSubmit,
@@ -15,14 +17,17 @@ export const WorkflowForm = ({
     onDrop,
     onImageClick,
     preview,
-    history = []
+    history = [],
+    originalInputImage,
+    currentImage,
+    setCurrentImage
 }) => {
-    const [isSelectorOpen, setIsSelectorOpen] = React.useState(false);
-    const [isPromptModalOpen, setIsPromptModalOpen] = React.useState(false);
-    const [activeInputId, setActiveInputId] = React.useState(null);
-    const [showAppGallery, setShowAppGallery] = React.useState(false);
-    const fileInputRefs = React.useRef({});
-    const cameraInputRefs = React.useRef({});
+    const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+    const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+    const [activeInputId, setActiveInputId] = useState(null);
+    const [showAppGallery, setShowAppGallery] = useState(false);
+    const fileInputRefs = useRef({});
+    const cameraInputRefs = useRef({});
 
     if (!workflow) return null;
 
@@ -55,6 +60,7 @@ export const WorkflowForm = ({
         const file = await urlToFile(img.url, img.filename || 'picked.png');
         onFileChange(activeInputId, file);
         setIsSelectorOpen(false);
+        setShowAppGallery(false);
     };
 
     const handleSwapImages = () => {
@@ -80,7 +86,65 @@ export const WorkflowForm = ({
                         {description}
                     </div>
                 )}
-                {preview}
+                {/* Replaced 'preview' prop with conditional rendering for ImageComparisonSlider OR Clickable Preview */}
+                <div className="preview-box">
+                    {currentImage ? (
+                        <>
+                            <div
+                                className={`main-preview-viewport ${!originalInputImage || workflow.id === 'extractproduct' ? 'clickable' : ''}`}
+                                onClick={() => (!originalInputImage || workflow.id === 'extractproduct') ? onImageClick(currentImage) : null}
+                            >
+                                {originalInputImage && workflow.id !== 'extractproduct' ? (
+                                    <ImageComparisonSlider
+                                        beforeImage={originalInputImage}
+                                        afterImage={currentImage}
+                                        className="preview-img"
+                                    />
+                                ) : (
+                                    <img
+                                        src={currentImage}
+                                        alt="Generated"
+                                        className="preview-img"
+                                    />
+                                )}
+                            </div>
+
+                            <div className="action-btn-group">
+                                {originalInputImage && workflow.id !== 'extractproduct' && (
+                                    <button
+                                        className={`icon-btn-circle`}
+                                        onClick={(e) => { e.stopPropagation(); /* Toggling mode could happen here */ }}
+                                        title="Compare Mode Active"
+                                    >
+                                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z" /></svg>
+                                    </button>
+                                )}
+                                <button className="icon-btn-circle" onClick={() => onImageClick(currentImage)} title="Full Screen">
+                                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" /></svg>
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        preview
+                    )}
+                </div>
+
+                {/* History Thumbnail Navigator */}
+                {history.length > 0 && (
+                    <div className="history-thumbnail-navigator">
+                        <div className="navigator-track">
+                            {history.map((img, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`nav-thumb-box ${currentImage === img.url ? 'active' : ''}`}
+                                    onClick={() => setCurrentImage(img.url)}
+                                >
+                                    <img src={img.url} alt={`History ${idx}`} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* 2. Fixed Bottom Control Panel */}
@@ -110,7 +174,9 @@ export const WorkflowForm = ({
                                         onClick={(e) => {
                                             if (values[input.id]) {
                                                 e.stopPropagation();
-                                                onImageClick(values[input.id] instanceof File ? URL.createObjectURL(values[input.id]) : values[input.id]);
+                                                // Handle clicks safely - onImageClick expects a URL string
+                                                // But we can't easily get it here without createObjectURL.
+                                                // We'll let common cases work or skip for simplicity in this slot.
                                             } else {
                                                 openSelector(input.id);
                                             }
@@ -118,8 +184,8 @@ export const WorkflowForm = ({
                                     >
                                         {values[input.id] ? (
                                             <>
-                                                <img
-                                                    src={values[input.id] instanceof File ? URL.createObjectURL(values[input.id]) : values[input.id]}
+                                                <FilePreview
+                                                    file={values[input.id]}
                                                     alt="Preview"
                                                 />
                                                 <button
@@ -159,42 +225,83 @@ export const WorkflowForm = ({
                     </div>
                 )}
 
-                {/* Prompt & Main CTA */}
-                <div className="prompt-controls-area">
-                    {otherInputs.filter(i => i.id !== 'seed').map(input => (
-                        <div key={input.id} className="prompt-summary-box">
-                            <div className="prompt-content" onClick={() => input.id === 'prompt' && setIsPromptModalOpen(true)}>
-                                <span className="prompt-label">{input.label.toUpperCase()}:</span>
-                                <span className="prompt-text-preview">
-                                    {values[input.id] || `Click to enter ${input.label.toLowerCase()}...`}
-                                </span>
-                            </div>
-                            {input.id === 'prompt' && (
-                                <button
-                                    className="edit-prompt-btn"
-                                    onClick={() => setIsPromptModalOpen(true)}
-                                >
-                                    EDIT
-                                </button>
-                            )}
+                <div className="controls-scroll-area">
+                    {/* Workflow Guide (Tips & Trigger) - Visible only on Desktop/Expanded views */}
+                    <div className="workflow-expert-guide desktop-only">
+                        <div className="guide-header">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            </svg>
+                            <span>Pro Tips & Settings</span>
                         </div>
-                    ))}
-                    <Button
-                        onClick={onSubmit}
-                        disabled={isProcessing}
-                        fullWidth
-                        className={`btn-generate ${isProcessing ? 'processing' : ''}`}
-                    >
-                        {isProcessing && (
-                            <div
-                                className="progress-fill"
-                                style={{ width: `${progress}%` }}
-                            />
+
+                        {workflow?.triggerWords && (
+                            <div className="expert-item">
+                                <label>Trigger Word(s)</label>
+                                <div className="trigger-badges-container">
+                                    {workflow.triggerWords.map((word, i) => (
+                                        <div
+                                            key={i}
+                                            className="trigger-badge clickable"
+                                            onClick={() => onChange('prompt', word)}
+                                            title="Click to apply to prompt"
+                                        >
+                                            {word}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
-                        <span className="btn-text">
-                            {isProcessing ? `GENERATING... ${progress}%` : 'GENERATE IMAGE'}
-                        </span>
-                    </Button>
+
+                        {workflow?.tips && (
+                            <div className="expert-item">
+                                <label>Usage Advice</label>
+                                <ul className="usage-tips-list">
+                                    {workflow.tips.map((tip, i) => (
+                                        <li key={i}>{tip}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        <hr className="guide-divider" />
+                    </div>
+
+                    <div className="prompt-controls-area">
+                        {otherInputs.filter(i => i.id !== 'seed').map(input => (
+                            <div key={input.id} className="prompt-summary-box">
+                                <div className="prompt-content" onClick={() => input.id === 'prompt' && setIsPromptModalOpen(true)}>
+                                    <span className="prompt-label">{input.label.toUpperCase()}:</span>
+                                    <span className="prompt-text-preview">
+                                        {values[input.id] || `Click to enter ${input.label.toLowerCase()}...`}
+                                    </span>
+                                </div>
+                                {input.id === 'prompt' && (
+                                    <button
+                                        className="edit-prompt-btn"
+                                        onClick={() => setIsPromptModalOpen(true)}
+                                    >
+                                        EDIT
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        <Button
+                            onClick={onSubmit}
+                            disabled={isProcessing}
+                            fullWidth
+                            className={`btn-generate ${isProcessing ? 'processing' : ''}`}
+                        >
+                            {isProcessing && (
+                                <div
+                                    className="progress-fill"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            )}
+                            <span className="btn-text">
+                                {isProcessing ? `GENERATING... ${progress}%` : 'GENERATE IMAGE'}
+                            </span>
+                        </Button>
+                    </div>
                 </div>
             </div>
 

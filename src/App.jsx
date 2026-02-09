@@ -7,21 +7,30 @@ import { Button, Card } from './components/ui/components';
 import './index.css';
 import { Gallery } from './components/Gallery';
 import { HomeView } from './components/HomeView';
+import { ImageComparisonSlider } from './components/ImageComparisonSlider';
 
 function App() {
   const [status, setStatus] = useState('disconnected');
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState(() => localStorage.getItem('selectedWorkflowId'));
   const [currentImage, setCurrentImage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
   const [history, setHistory] = useState([]); // Store all generated images
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const [activePromptId, setActivePromptId] = useState(() => localStorage.getItem('activePromptId'));
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [formValues, setFormValues] = useState({});
+  const [formValues, setFormValues] = useState(() => {
+    try {
+      const saved = localStorage.getItem('formValues');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) { return {}; }
+  });
   const [dragActive, setDragActive] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [originalInputImage, setOriginalInputImage] = useState(null);
+  const [showComparison, setShowComparison] = useState(false);
 
   const api = useRef(new ComfyApi());
 
@@ -34,6 +43,12 @@ function App() {
   // Close sidebar on workflow selection (mobile) and reset form
   useEffect(() => {
     setSidebarOpen(false);
+
+    if (selectedWorkflowId) {
+      localStorage.setItem('selectedWorkflowId', selectedWorkflowId);
+    } else {
+      localStorage.removeItem('selectedWorkflowId');
+    }
 
     if (selectedWorkflowId) {
       const workflow = workflows.find(w => w.id === selectedWorkflowId);
@@ -74,9 +89,15 @@ function App() {
     };
 
     const handleExecuted = (data) => {
+      if (activePromptId && data.prompt_id !== activePromptId) return;
+
       setIsProcessing(false);
       setProgress(100);
       setTimeout(() => setProgress(0), 1000);
+
+      localStorage.removeItem('activePromptId');
+      setActivePromptId(null);
+
       // Retrieve image
       const images = data.output.images;
       if (images && images.length > 0) {
@@ -95,9 +116,18 @@ function App() {
       }
     };
 
+    const handleExecutionStart = (data) => {
+      // If we see node: null after starting, it might mean it's finished or skipped
+      if (data.node === null) {
+        // Potential completion signal if missed 'executed'
+        console.log('Execution stream finished for:', data.prompt_id);
+      }
+    };
+
     comfy.on('status', handleStatus);
     comfy.on('progress', handleProgress);
     comfy.on('executed', handleExecuted);
+    comfy.on('execution_start', handleExecutionStart);
 
     // Also log execution errors
     comfy.on('execution_error', (data) => {
@@ -112,7 +142,57 @@ function App() {
     return () => {
       comfy.disconnect();
     };
-  }, []);
+  }, [activePromptId]); // Re-bind if promptId changes
+
+  // Function to manually check if a prompt is finished (Polling Fallback)
+  const checkPromptResult = async (promptId) => {
+    try {
+      const historyRes = await api.current.getHistory(promptId);
+      const result = historyRes[promptId];
+      if (result && result.outputs) {
+        // Format it like a regular 'executed' event data
+        const payload = {
+          prompt_id: promptId,
+          output: result.outputs[Object.keys(result.outputs)[0]]
+        };
+        // Re-use logic
+        const images = payload.output.images;
+        if (images && images.length > 0) {
+          const img = images[0];
+          const url = `/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
+          setCurrentImage(url);
+          setHistory(prev => {
+            if (prev.length > 0 && prev[0].filename === img.filename) return prev;
+            return [{ url, filename: img.filename, type: img.type, subfolder: img.subfolder }, ...prev];
+          });
+          setIsProcessing(false);
+          setProgress(0);
+          localStorage.removeItem('activePromptId');
+          setActivePromptId(null);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('Polling error:', e);
+    }
+    return false;
+  };
+
+  // Auto-recovery and periodic safety check
+  useEffect(() => {
+    if (activePromptId) {
+      setIsProcessing(true);
+      checkPromptResult(activePromptId);
+    }
+
+    const interval = setInterval(() => {
+      if (activePromptId) {
+        checkPromptResult(activePromptId);
+      }
+    }, 10000); // Check every 10s if something is pending
+
+    return () => clearInterval(interval);
+  }, [activePromptId]);
 
   const handleWorkflowSubmit = async () => {
     const values = formValues;
@@ -126,13 +206,23 @@ function App() {
       const inputs = { ...values };
       const workflowConfig = workflows.find(w => w.id === selectedWorkflowId);
 
+      let capturedOriginal = false;
       for (const inputConfig of workflowConfig.inputs) {
-        if (inputConfig.type === 'image' && values[inputConfig.id] instanceof File) {
+        if (inputConfig.type === 'image') {
           const file = values[inputConfig.id];
-          setLogs(prev => [...prev, `Uploading ${file.name}...`]);
-          const res = await api.current.uploadImage(file);
-          // Store the upload result (filename) for the prompt
-          inputs[inputConfig.id] = res.name;
+          if (file instanceof File) {
+            // Capture the first image as the "Original" for comparison
+            if (!capturedOriginal) {
+              const reader = new FileReader();
+              reader.onload = (e) => setOriginalInputImage(e.target.result);
+              reader.readAsDataURL(file);
+              capturedOriginal = true;
+            }
+
+            setLogs(prev => [...prev, `Uploading ${file.name}...`]);
+            const res = await api.current.uploadImage(file);
+            inputs[inputConfig.id] = res.name;
+          }
         }
 
         // Handle Seed: If empty or 0, generate random
@@ -161,7 +251,10 @@ function App() {
       console.log('Sending workflow:', finalWorkflow);
 
       // Execute
-      await api.current.queuePrompt(finalWorkflow);
+      const res = await api.current.queuePrompt(finalWorkflow);
+      const promptId = res.prompt_id;
+      setActivePromptId(promptId);
+      localStorage.setItem('activePromptId', promptId);
 
       setLogs(prev => [...prev, 'Workflow queued successfully!']);
       setIsProcessing(true);
@@ -206,7 +299,15 @@ function App() {
   };
 
   const handleValueChange = (id, value) => {
-    setFormValues(prev => ({ ...prev, [id]: value }));
+    setFormValues(prev => {
+      const next = { ...prev, [id]: value };
+      // Don't persist File objects (the browser won't let us anyway)
+      const serializable = Object.fromEntries(
+        Object.entries(next).filter(([_, v]) => !(v instanceof File))
+      );
+      localStorage.setItem('formValues', JSON.stringify(serializable));
+      return next;
+    });
   };
 
   const getFunStatus = () => {
@@ -273,8 +374,7 @@ function App() {
             ☰
           </button>
           <span
-            onClick={() => setSelectedWorkflowId(null)}
-            style={{ fontWeight: '600', fontSize: '0.9rem', flex: 1, textAlign: 'center', cursor: 'pointer' }}
+            style={{ fontWeight: '600', fontSize: '0.9rem', flex: 1, textAlign: 'center' }}
           >
             {activeWorkflow ? activeWorkflow.name : 'ALLAI'}
           </span>
@@ -404,18 +504,38 @@ function App() {
                 onDrag={handleDrag}
                 onDrop={handleDrop}
                 onImageClick={(url) => setLightboxImage(url)}
+                originalInputImage={originalInputImage}
+                currentImage={currentImage}
+                setCurrentImage={setCurrentImage}
                 preview={
                   <div className="main-preview-container">
                     <div className="preview-box">
                       {currentImage ? (
                         <>
-                          <img
-                            src={currentImage}
-                            alt="Generated"
-                            className="preview-img clickable"
-                            onClick={() => setLightboxImage(currentImage)}
-                          />
+                          {showComparison && originalInputImage && selectedWorkflowId !== 'extractproduct' ? (
+                            <ImageComparisonSlider
+                              beforeImage={originalInputImage}
+                              afterImage={currentImage}
+                              className="preview-img"
+                            />
+                          ) : (
+                            <img
+                              src={currentImage}
+                              alt="Generated"
+                              className="preview-img clickable"
+                              onClick={() => setLightboxImage(currentImage)}
+                            />
+                          )}
                           <div className="action-btn-group">
+                            {originalInputImage && selectedWorkflowId !== 'extractproduct' && (
+                              <button
+                                className={`icon-btn-circle ${showComparison ? 'active' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); setShowComparison(!showComparison); }}
+                                title="Compare with Original"
+                              >
+                                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z" /></svg>
+                              </button>
+                            )}
                             <button
                               className="icon-btn-circle"
                               onClick={(e) => { e.stopPropagation(); handleShareImage(currentImage, 'output.png'); }}

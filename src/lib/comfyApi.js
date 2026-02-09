@@ -7,13 +7,19 @@ export class ComfyApi {
         // Use relative path - proxy will handle it
         this.host = window.location.host;
         // Use reliable UUID generation even in non-secure (HTTP) contexts
-        this.clientId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        // Persist clientId so we can receive events after a refresh
+        const savedId = localStorage.getItem('comfy_client_id');
+        this.clientId = savedId || ((typeof crypto !== 'undefined' && crypto.randomUUID)
             ? crypto.randomUUID()
             : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 const r = Math.random() * 16 | 0;
                 const v = c === 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
-            });
+            }));
+
+        if (!savedId) {
+            localStorage.setItem('comfy_client_id', this.clientId);
+        }
         this.socket = null;
         this.status = 'disconnected';
         this.queueRemaining = 0;
