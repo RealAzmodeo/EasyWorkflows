@@ -296,12 +296,15 @@ function App() {
           </div>
         ) : (
           <div className="fade-in">
-            <header className="mobile-hide" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <header className="mobile-hide" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h1 style={{ margin: 0 }}>{activeWorkflow.name}</h1>
-                <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 0', display: 'none' }}>{activeWorkflow.description}</p>
               </div>
             </header>
+
+            <div className="workflow-legend">
+              {activeWorkflow.description}
+            </div>
 
             <div className="mobile-vertical-stack">
               <WorkflowForm
@@ -349,13 +352,15 @@ function App() {
               />
             </div>
 
-            {/* Floating Gallery Button */}
+            {/* Floating Gallery Button (SVG) */}
             <button
               className="fab-gallery"
               onClick={() => setIsGalleryOpen(true)}
               title="Open History"
             >
-              🖼️
+              <svg viewBox="0 0 24 24">
+                <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z" />
+              </svg>
             </button>
 
             {/* Gallery Drawer Overlay */}

@@ -35,14 +35,9 @@ export const WorkflowForm = ({
             {/* 1. Top Section: Result Preview (Moved to Top) */}
             {preview}
 
-            {/* 2. Workflow Description (Explicación) */}
-            <div style={{ margin: '1rem 0', opacity: 0.9, fontSize: '0.95rem', fontStyle: 'italic', borderLeft: '4px solid var(--primary)', paddingLeft: '1rem', color: 'var(--text)' }}>
-                {workflow.description}
-            </div>
-
-            {/* 3. Image Inputs (Horizontal) */}
+            {/* 2. Image Inputs (Horizontal) */}
             {imageInputs.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                         <h3 style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-secondary)' }}>INPUTS</h3>
                         {hasMultipleImages && (
@@ -72,7 +67,8 @@ export const WorkflowForm = ({
                                             e.stopPropagation();
                                             onImageClick(values[input.id] instanceof File ? URL.createObjectURL(values[input.id]) : values[input.id]);
                                         } else {
-                                            document.getElementById(`file-${input.id}`).click();
+                                            const fileInput = document.getElementById(`file-${input.id}`);
+                                            if (fileInput) fileInput.click();
                                         }
                                     }}
                                     style={{
@@ -97,7 +93,7 @@ export const WorkflowForm = ({
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         />
                                     ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', opacity: 0.5 }}>
                                             <span style={{ fontSize: '1.5rem' }}>+</span>
                                         </div>
                                     )}
@@ -109,8 +105,8 @@ export const WorkflowForm = ({
                 </div>
             )}
 
-            {/* 4. Bottom Section: Params & Generate */}
-            <div style={{ marginTop: '0.5rem' }}>
+            {/* 3. Params & Generate */}
+            <div style={{ marginTop: '1rem' }}>
                 {otherInputs.filter(i => i.id !== 'seed').map(input => (
                     <div key={input.id} style={{ position: 'relative', marginBottom: '1.2rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
@@ -123,9 +119,10 @@ export const WorkflowForm = ({
                                     type="button"
                                     onClick={() => onChange(input.id, input.defaultValue)}
                                     title="Reset Prompt"
-                                    style={{ fontSize: '1rem' }}
                                 >
-                                    🔄
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                                    </svg>
                                 </button>
                             )}
                         </div>
