@@ -1168,6 +1168,76 @@ textarea:focus {
   }
 }
 
+/* Desktop 2-Column Layout */
+@media (min-width: 769px) {
+  .workflow-layout-container {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    height: calc(100vh - 80px);
+    /* Adjust based on your header height */
+    overflow: hidden;
+  }
+
+  .workflow-scroll-area {
+    padding-bottom: 2rem !important;
+    /* No need for huge padding for fixed panel */
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  .fixed-controls-panel {
+    position: static !important;
+    height: 100%;
+    border-left: 1px solid var(--border);
+    border-top: none !important;
+    background: var(--bg-card);
+    transform: none !important;
+    animation: none !important;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem !important;
+    overflow-y: auto;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .prompt-controls-area {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .compact-image-inputs {
+    margin-bottom: 1.5rem;
+  }
+
+  .horizontal-inputs-scroll {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    overflow-x: visible !important;
+  }
+
+  .image-slot-mini {
+    flex: 0 0 calc(50% - 6px);
+  }
+
+  .mini-slot-box {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1/1;
+  }
+
+  .main-preview-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .preview-box {
+    height: auto !important;
+    max-height: 80vh;
+  }
+}
+
 /* Home View Responsive */
 @media (max-width: 768px) {
   .home-view {
