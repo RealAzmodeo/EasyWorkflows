@@ -21,6 +21,7 @@ function App() {
   const [formValues, setFormValues] = useState({});
   const [dragActive, setDragActive] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   const api = useRef(new ComfyApi());
 
@@ -316,10 +317,15 @@ function App() {
                 onImageClick={(url) => setLightboxImage(url)}
                 preview={
                   <div className="main-preview-container">
-                    <Card title="Output Preview" style={{ minHeight: '300px', margin: '1rem 0' }}>
+                    <Card title="Output Preview" style={{ minHeight: '300px', margin: '0' }}>
                       <div className="preview-box">
                         {currentImage ? (
-                          <img src={currentImage} alt="Generated" className="preview-img" />
+                          <img
+                            src={currentImage}
+                            alt="Generated"
+                            className="preview-img clickable"
+                            onClick={() => setLightboxImage(currentImage)}
+                          />
                         ) : (
                           <div className="preview-placeholder">
                             {isProcessing ? (
@@ -341,11 +347,35 @@ function App() {
                   </div>
                 }
               />
+            </div>
 
-              <hr style={{ border: 'none', borderBottom: '1px solid var(--border)', margin: '3rem 0' }} />
+            {/* Floating Gallery Button */}
+            <button
+              className="fab-gallery"
+              onClick={() => setIsGalleryOpen(true)}
+              title="Open History"
+            >
+              🖼️
+            </button>
 
-              <div style={{ paddingBottom: '5rem' }}>
-                <h3 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>GENERATION HISTORY</h3>
+            {/* Gallery Drawer Overlay */}
+            <div
+              className={`drawer-overlay ${isGalleryOpen ? 'open' : ''}`}
+              onClick={() => setIsGalleryOpen(false)}
+            ></div>
+
+            {/* Gallery Drawer */}
+            <aside className={`gallery-drawer ${isGalleryOpen ? 'open' : ''}`}>
+              <div className="drawer-header">
+                <h3 style={{ margin: 0 }}>History</h3>
+                <button
+                  onClick={() => setIsGalleryOpen(false)}
+                  style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)' }}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="drawer-content">
                 <Gallery
                   images={history}
                   onDragStart={handleGalleryDragStart}
@@ -354,7 +384,8 @@ function App() {
                   onImageClick={(url) => setLightboxImage(url)}
                 />
               </div>
-            </div>
+            </aside>
+
             {/* Global Lightbox Component */}
             {lightboxImage && (
               <div

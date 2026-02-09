@@ -32,16 +32,19 @@ export const WorkflowForm = ({
 
     return (
         <div className="workflow-layout-container">
-            {/* 1. Header & Description */}
-            <div style={{ marginBottom: '1.5rem', opacity: 0.8, fontSize: '0.85rem', fontStyle: 'italic', borderLeft: '3px solid var(--primary)', paddingLeft: '1rem' }}>
+            {/* 1. Top Section: Result Preview (Moved to Top) */}
+            {preview}
+
+            {/* 2. Workflow Description (Explicación) */}
+            <div style={{ margin: '1rem 0', opacity: 0.9, fontSize: '0.95rem', fontStyle: 'italic', borderLeft: '4px solid var(--primary)', paddingLeft: '1rem', color: 'var(--text)' }}>
                 {workflow.description}
             </div>
 
-            {/* 2. Top Section: Image Inputs (Horizontal) */}
+            {/* 3. Image Inputs (Horizontal) */}
             {imageInputs.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '0.75rem', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>INPUTS</h3>
+                        <h3 style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-secondary)' }}>INPUTS</h3>
                         {hasMultipleImages && (
                             <Button
                                 type="button"
@@ -54,11 +57,7 @@ export const WorkflowForm = ({
                         )}
                     </div>
                     <div className="horizontal-inputs" style={{
-                        display: 'flex',
-                        gap: '1rem',
-                        overflowX: 'auto',
-                        paddingBottom: '0.8rem',
-                        scrollbarWidth: 'none'
+                        display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.8rem', scrollbarWidth: 'none'
                     }}>
                         {imageInputs.map(input => (
                             <div key={input.id} style={{ minWidth: '140px', flex: '0 0 140px' }}>
@@ -99,16 +98,10 @@ export const WorkflowForm = ({
                                         />
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                                            <span style={{ fontSize: '1rem' }}>+</span>
+                                            <span style={{ fontSize: '1.5rem' }}>+</span>
                                         </div>
                                     )}
-                                    <input
-                                        id={`file-${input.id}`}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => e.target.files?.[0] && onFileChange(input.id, e.target.files[0])}
-                                        style={{ display: 'none' }}
-                                    />
+                                    <input id={`file-${input.id}`} type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onFileChange(input.id, e.target.files[0])} style={{ display: 'none' }} />
                                 </div>
                             </div>
                         ))}
@@ -116,40 +109,31 @@ export const WorkflowForm = ({
                 </div>
             )}
 
-            {/* 3. Mid Section: Result Preview */}
-            {preview}
-
             {/* 4. Bottom Section: Params & Generate */}
-            <div style={{ marginTop: '1.5rem' }}>
-                {otherInputs.map(input => (
-                    <div key={input.id} style={{ position: 'relative', marginBottom: '1rem' }}>
-                        {input.id === 'prompt' && (
-                            <button
-                                type="button"
-                                onClick={() => onChange(input.id, input.defaultValue)}
-                                style={{
-                                    position: 'absolute',
-                                    right: 0,
-                                    top: 0,
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--primary)',
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer',
-                                    fontWeight: '700',
-                                    zIndex: 2,
-                                    padding: '8px'
-                                }}
-                            >
-                                RESET
-                            </button>
-                        )}
+            <div style={{ marginTop: '0.5rem' }}>
+                {otherInputs.filter(i => i.id !== 'seed').map(input => (
+                    <div key={input.id} style={{ position: 'relative', marginBottom: '1.2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                            <label style={{ margin: 0, fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                                {input.label}
+                            </label>
+                            {input.id === 'prompt' && (
+                                <button
+                                    className="icon-btn-reset"
+                                    type="button"
+                                    onClick={() => onChange(input.id, input.defaultValue)}
+                                    title="Reset Prompt"
+                                    style={{ fontSize: '1rem' }}
+                                >
+                                    🔄
+                                </button>
+                            )}
+                        </div>
                         <Input
-                            label={input.label}
                             placeholder={input.placeholder}
                             value={values[input.id] || ''}
                             onChange={(e) => onChange(input.id, e.target.value)}
-                            type={input.id === 'prompt' ? 'textarea' : (input.type === 'number' ? 'number' : 'text')}
+                            type={input.id === 'prompt' ? 'textarea' : 'text'}
                             rows={input.id === 'prompt' ? 3 : 1}
                         />
                     </div>
@@ -160,13 +144,13 @@ export const WorkflowForm = ({
                     variant="primary"
                     style={{
                         width: '100%',
-                        padding: '1rem',
-                        fontSize: '1rem',
+                        padding: '1.2rem',
+                        fontSize: '1.1rem',
                         marginTop: '0.5rem',
                         fontWeight: 'bold',
                         letterSpacing: '0.05em',
                         borderRadius: '12px',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+                        boxShadow: '0 8px 25px rgba(35, 131, 226, 0.3)'
                     }}
                     disabled={isProcessing}
                 >
