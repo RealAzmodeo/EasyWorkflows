@@ -8,6 +8,7 @@ import './index.css';
 import { Gallery } from './components/Gallery';
 import { HomeView } from './components/HomeView';
 import { ImageComparisonSlider } from './components/ImageComparisonSlider';
+import { urlToFile, saveFormToLocalStorage, loadFormFromLocalStorage, getFunStatus } from './lib/utils';
 
 function App() {
   const [status, setStatus] = useState('disconnected');
@@ -20,12 +21,7 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [activePromptId, setActivePromptId] = useState(() => localStorage.getItem('activePromptId'));
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [formValues, setFormValues] = useState(() => {
-    try {
-      const saved = localStorage.getItem('formValues');
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) { return {}; }
-  });
+  const [formValues, setFormValues] = useState(() => loadFormFromLocalStorage('formValues'));
   const [dragActive, setDragActive] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -68,12 +64,6 @@ function App() {
     }
   }, [selectedWorkflowId]);
 
-  // Helper: Convert URL to File object for re-upload
-  const urlToFile = async (url, filename) => {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new File([blob], filename, { type: blob.type });
-  };
 
   useEffect(() => {
     const comfy = api.current;
@@ -248,7 +238,7 @@ function App() {
         }
       });
 
-      console.log('Sending workflow:', finalWorkflow);
+      console.debug('Sending workflow to ComfyUI');
 
       // Execute
       const res = await api.current.queuePrompt(finalWorkflow);
@@ -301,30 +291,11 @@ function App() {
   const handleValueChange = (id, value) => {
     setFormValues(prev => {
       const next = { ...prev, [id]: value };
-      // Don't persist File objects (the browser won't let us anyway)
-      const serializable = Object.fromEntries(
-        Object.entries(next).filter(([_, v]) => !(v instanceof File))
-      );
-      localStorage.setItem('formValues', JSON.stringify(serializable));
+      saveFormToLocalStorage('formValues', next);
       return next;
     });
   };
 
-  const getFunStatus = () => {
-    if (!selectedWorkflowId) return "Preparing...";
-    const workflow = workflows.find(w => w.id === selectedWorkflowId);
-    const category = workflow?.category || 'Utility';
-
-    const messages = {
-      'Stylization': ['Transforming your look...', 'Adding a touch of magic...', 'Refining the aesthetic...', 'Styling in progress...'],
-      'Characters': ['Bringing them to life...', 'Defining character traits...', 'Crafting the personality...', 'Finalizing the features...'],
-      'Face': ['Enhancing the expression...', 'Focusing on the details...', 'Polishing the portrait...', 'Perfecting the face...'],
-      'Utility': ['Processing your request...', 'Generating results...', 'Almost there...', 'Crunching pixels...']
-    };
-
-    const categoryMessages = messages[category] || messages['Utility'];
-    return categoryMessages[Math.floor(Date.now() / 2000) % categoryMessages.length];
-  };
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
@@ -557,7 +528,7 @@ function App() {
                           {isProcessing ? (
                             <div className="loader-container">
                               <div className="premium-spinner"></div>
-                              <span className="fun-status-text">{getFunStatus()}</span>
+                              <span className="fun-status-text">{getFunStatus(selectedWorkflowId)}</span>
                             </div>
                           ) : "Result will appear here"}
                         </div>
@@ -594,7 +565,10 @@ function App() {
                   onDelete={handleDeleteImage}
                   onDownload={handleDownloadImage}
                   onShare={handleShareImage}
-                  onImageClick={(url) => setLightboxImage(url)}
+                  onImageClick={(url) => {
+                    setLightboxImage(url);
+                    setIsGalleryOpen(false);
+                  }}
                 />
               </div>
             </aside>

@@ -152,8 +152,8 @@ export const WorkflowForm = ({
                 {/* Image Vertical Stack (Compact) */}
                 {imageInputs.length > 0 && (
                     <div className="compact-image-inputs">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                            <h3 style={{ margin: 0, fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-secondary)', letterSpacing: '0.5px' }}>IMAGES</h3>
+                        <div className="compact-image-header">
+                            <h3 className="compact-image-title">IMAGES</h3>
                             {hasMultipleImages && (
                                 <button
                                     type="button"
@@ -200,7 +200,7 @@ export const WorkflowForm = ({
                                                 </button>
                                             </>
                                         ) : (
-                                            <span style={{ fontSize: '1.8rem', opacity: 0.8, color: 'var(--primary)' }}>+</span>
+                                            <span className="empty-slot-icon">+</span>
                                         )}
                                         <input
                                             ref={el => fileInputRefs.current[input.id] = el}
@@ -310,8 +310,8 @@ export const WorkflowForm = ({
                 <div className="modal-overlay" onClick={() => setIsPromptModalOpen(false)}>
                     <div className="prompt-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3 style={{ margin: 0 }}>Edit Prompt</h3>
-                            <button onClick={() => setIsPromptModalOpen(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)' }}>✕</button>
+                            <h3>Edit Prompt</h3>
+                            <button onClick={() => setIsPromptModalOpen(false)} className="modal-close-btn">✕</button>
                         </div>
                         <div className="modal-body">
                             <Input
@@ -332,7 +332,7 @@ export const WorkflowForm = ({
                                 autoFocus
                             />
                         </div>
-                        <div className="modal-footer" style={{ display: 'flex', gap: '1rem' }}>
+                        <div className="modal-footer modal-footer-flex">
                             <Button
                                 variant="outline"
                                 style={{ flex: 1 }}
@@ -356,8 +356,8 @@ export const WorkflowForm = ({
                 <div className="modal-overlay" onClick={() => setIsSelectorOpen(false)}>
                     <div className="source-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3 style={{ margin: 0 }}>{showAppGallery ? 'Select from App History' : 'Add Image'}</h3>
-                            <button onClick={() => setIsSelectorOpen(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)' }}>✕</button>
+                            <h3>{showAppGallery ? 'Select from App History' : 'Add Image'}</h3>
+                            <button onClick={() => setIsSelectorOpen(false)} className="modal-close-btn">✕</button>
                         </div>
 
                         {!showAppGallery ? (

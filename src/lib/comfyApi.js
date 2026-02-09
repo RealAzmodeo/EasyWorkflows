@@ -135,14 +135,22 @@ export class ComfyApi {
      * Interrupt current generation
      */
     async interrupt() {
-        await fetch(`http://${this.host}/interrupt`, { method: 'POST' });
+        try {
+            await fetch(`/interrupt`, { method: 'POST' });
+        } catch (e) {
+            console.error('Error interrupting:', e);
+        }
     }
 
     /**
      * Clear the queue
      */
     async clearQueue() {
-        await fetch(`http://${this.host}/queue`, { method: 'POST', body: JSON.stringify({ clear: true }) });
+        try {
+            await fetch(`/queue`, { method: 'POST', body: JSON.stringify({ clear: true }) });
+        } catch (e) {
+            console.error('Error clearing queue:', e);
+        }
     }
 
     /**
@@ -150,7 +158,8 @@ export class ComfyApi {
      * @param {String} promptId 
      */
     async getHistory(promptId) {
-        const res = await fetch(`http://${this.host}/history/${promptId}`);
+        const res = await fetch(`/history/${promptId}`);
+        if (!res.ok) throw new Error(`History Fetch Error: ${res.status}`);
         return await res.json();
     }
 
@@ -158,7 +167,8 @@ export class ComfyApi {
      * Get system stats
      */
     async getSystemStats() {
-        const res = await fetch(`http://${this.host}/system_stats`);
+        const res = await fetch(`/system_stats`);
+        if (!res.ok) throw new Error(`Stats Fetch Error: ${res.status}`);
         return await res.json();
     }
 
