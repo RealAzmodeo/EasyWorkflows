@@ -6,14 +6,14 @@ import { WorkflowForm } from './components/WorkflowForm';
 import { Button, Card } from './components/ui/components';
 import './index.css';
 import { Gallery } from './components/Gallery';
-
-// ... (previous imports)
+import { HomeView } from './components/HomeView';
 
 function App() {
   const [status, setStatus] = useState('disconnected');
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
   const [currentImage, setCurrentImage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
   const [history, setHistory] = useState([]); // Store all generated images
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
@@ -68,11 +68,15 @@ function App() {
     };
 
     const handleProgress = (data) => {
+      const percent = Math.round((data.value / data.max) * 100);
+      setProgress(percent);
       setLogs(prev => [...prev.slice(-4), `Step ${data.value}/${data.max}`]);
     };
 
     const handleExecuted = (data) => {
       setIsProcessing(false);
+      setProgress(100);
+      setTimeout(() => setProgress(0), 1000);
       // Retrieve image
       const images = data.output.images;
       if (images && images.length > 0) {
@@ -100,6 +104,7 @@ function App() {
       console.error('WS Execution Error:', data);
       setLogs(prev => [...prev, `Error: ${data.exception_type} - ${data.exception_message}`]);
       setIsProcessing(false);
+      setProgress(0);
     });
 
     comfy.connect();
@@ -109,8 +114,10 @@ function App() {
     };
   }, []);
 
-  const handleWorkflowSubmit = async (values) => {
+  const handleWorkflowSubmit = async () => {
+    const values = formValues;
     setIsProcessing(true);
+    setProgress(0);
     setLogs(['Starting...']);
     setCurrentImage(null);
 
@@ -163,6 +170,7 @@ function App() {
       console.error(err);
       setLogs(prev => [...prev, `Error: ${err.message}`]);
       setIsProcessing(false);
+      setProgress(0);
     }
   };
 
@@ -201,6 +209,22 @@ function App() {
     setFormValues(prev => ({ ...prev, [id]: value }));
   };
 
+  const getFunStatus = () => {
+    if (!selectedWorkflowId) return "Preparing...";
+    const workflow = workflows.find(w => w.id === selectedWorkflowId);
+    const category = workflow?.category || 'Utility';
+
+    const messages = {
+      'Stylization': ['Transforming your look...', 'Adding a touch of magic...', 'Refining the aesthetic...', 'Styling in progress...'],
+      'Characters': ['Bringing them to life...', 'Defining character traits...', 'Crafting the personality...', 'Finalizing the features...'],
+      'Face': ['Enhancing the expression...', 'Focusing on the details...', 'Polishing the portrait...', 'Perfecting the face...'],
+      'Utility': ['Processing your request...', 'Generating results...', 'Almost there...', 'Crunching pixels...']
+    };
+
+    const categoryMessages = messages[category] || messages['Utility'];
+    return categoryMessages[Math.floor(Date.now() / 2000) % categoryMessages.length];
+  };
+
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleDownloadImage = (url, filename) => {
@@ -216,20 +240,56 @@ function App() {
     setHistory(prev => prev.filter(img => img.filename !== filename));
   };
 
+  const handleShareImage = async (url, filename) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const file = new File([blob], filename || 'generated.png', { type: blob.type });
+
+      if (navigator.share) {
+        await navigator.share({
+          files: [file],
+          title: 'Check out this generation!',
+          text: 'Generated with Comfy Studio'
+        });
+      } else {
+        alert('Sharing is not supported on this browser. Opening image in new tab.');
+        window.open(url, '_blank');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
+
   return (
     <div className="app-container">
-      {/* Mobile Header */}
-      <div className="mobile-header">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)', padding: '0.5rem' }}
-        >
-          ☰
-        </button>
-        <span style={{ fontWeight: '600', fontSize: '0.9rem', flex: 1, textAlign: 'center', marginRight: '2.5rem' }}>
-          {activeWorkflow ? activeWorkflow.name : 'Comfy Studio'}
-        </span>
-      </div>
+      {/* Mobile Header - Only visible when in a workflow */}
+      {selectedWorkflowId && (
+        <div className="mobile-header">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)', padding: '0.5rem' }}
+          >
+            ☰
+          </button>
+          <span
+            onClick={() => setSelectedWorkflowId(null)}
+            style={{ fontWeight: '600', fontSize: '0.9rem', flex: 1, textAlign: 'center', cursor: 'pointer' }}
+          >
+            {activeWorkflow ? activeWorkflow.name : 'ALLAI'}
+          </span>
+          {/* Gallery Button in Mobile Header */}
+          <button
+            onClick={() => setIsGalleryOpen(true)}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center' }}
+            title="History"
+          >
+            <svg viewBox="0 0 24 24" style={{ width: '22px', height: '22px', fill: 'var(--text)' }}>
+              <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Overlay for mobile sidebar */}
       <div
@@ -237,36 +297,34 @@ function App() {
         onClick={() => setSidebarOpen(false)}
       ></div>
 
-      {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div style={{ padding: '0 1rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1rem', margin: 0 }}>Comfy Studio</h2>
+      {/* Sidebar - Hidden on Landing Page unless open */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''} ${!selectedWorkflowId ? 'mobile-hide' : ''}`}>
+        <div style={{ padding: '0.5rem 1rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 onClick={() => setSelectedWorkflowId(null)} className="brand-title">ALLAI</h2>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button
               onClick={toggleTheme}
+              className="icon-btn-reset"
               style={{
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '1.2rem',
-                color: 'var(--text-secondary)',
-                padding: '8px'
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center'
               }}
+              title="Toggle Theme"
             >
-              {theme === 'light' ? '🌙' : '☀️'}
+              {theme === 'light' ? (
+                <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px', fill: 'var(--text-secondary)' }}><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L19.42 4.58zM5.99 19.42c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06z" /></svg>
+              ) : (
+                <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px', fill: 'var(--text-secondary)' }}><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" /></svg>
+              )}
             </button>
-            {/* Close button for mobile modal */}
             <button
               className="mobile-close-btn"
               onClick={() => setSidebarOpen(false)}
-              style={{
-                background: 'var(--bg-hover)',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px 12px',
-                borderRadius: 'var(--radius)',
-                marginLeft: '8px'
-              }}
+              style={{ background: 'var(--bg-hover)', border: 'none', cursor: 'pointer', padding: '8px 12px', borderRadius: 'var(--radius)', marginLeft: '8px' }}
             >
               <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text)' }}>CLOSE</span>
             </button>
@@ -290,78 +348,107 @@ function App() {
       {/* Main Content */}
       <main className="main-content">
         {!selectedWorkflowId ? (
-          <div className="fade-in" style={{ textAlign: 'center', marginTop: '10vh' }}>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Welcome to Comfy Studio</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>Select a workflow from the sidebar to get started.</p>
-          </div>
+          <HomeView
+            workflows={workflows}
+            onSelectWorkflow={setSelectedWorkflowId}
+            status={status}
+          />
         ) : (
           <div className="fade-in">
-            <header className="mobile-hide" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h1 style={{ margin: 0 }}>{activeWorkflow.name}</h1>
+            <header className="mobile-hide" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button onClick={() => setSelectedWorkflowId(null)} className="icon-btn-circle" title="Back to Home">
+                  <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }}><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
+                </button>
+                <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{activeWorkflow.name}</h1>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                {/* Desktop History Button */}
+                <button
+                  onClick={() => setIsGalleryOpen(true)}
+                  className="icon-btn-reset"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    background: 'var(--bg-hover)',
+                    borderRadius: 'var(--radius)',
+                    color: 'var(--text)',
+                    fontSize: '0.9rem',
+                    fontWeight: 500,
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', fill: 'currentColor' }}>
+                    <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z" />
+                  </svg>
+                  HISTORY
+                </button>
               </div>
             </header>
 
-            <div className="workflow-legend">
-              {activeWorkflow.description}
-            </div>
-
-            <div className="mobile-vertical-stack">
+            <div className="workflow-content-area">
               <WorkflowForm
                 workflow={activeWorkflow}
+                description={activeWorkflow.description}
                 values={formValues}
+                history={history}
                 onChange={handleValueChange}
                 onFileChange={handleValueChange}
                 onSubmit={handleWorkflowSubmit}
                 isProcessing={isProcessing}
+                progress={progress}
                 dragActive={dragActive}
                 onDrag={handleDrag}
                 onDrop={handleDrop}
                 onImageClick={(url) => setLightboxImage(url)}
                 preview={
                   <div className="main-preview-container">
-                    <Card title="Output Preview" style={{ minHeight: '300px', margin: '0' }}>
-                      <div className="preview-box">
-                        {currentImage ? (
+                    <div className="preview-box">
+                      {currentImage ? (
+                        <>
                           <img
                             src={currentImage}
                             alt="Generated"
                             className="preview-img clickable"
                             onClick={() => setLightboxImage(currentImage)}
                           />
-                        ) : (
-                          <div className="preview-placeholder">
-                            {isProcessing ? (
-                              <div className="loader-container">
-                                <div className="loader"></div>
-                                <span>Generating...</span>
-                              </div>
-                            ) : "Result will appear here"}
+                          <div className="action-btn-group">
+                            <button
+                              className="icon-btn-circle"
+                              onClick={(e) => { e.stopPropagation(); handleShareImage(currentImage, 'output.png'); }}
+                              title="Share"
+                            >
+                              <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z" /></svg>
+                            </button>
+                            <button
+                              className="icon-btn-circle"
+                              onClick={(e) => { e.stopPropagation(); handleDownloadImage(currentImage, 'output.png'); }}
+                              title="Download"
+                            >
+                              <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
+                            </button>
                           </div>
-                        )}
-                      </div>
-
-                      {logs.length > 0 && (
-                        <div className="log-container">
-                          {logs.map((log, i) => <div key={i}>{log}</div>)}
+                        </>
+                      ) : (
+                        <div className="preview-placeholder">
+                          {isProcessing ? (
+                            <div className="loader-container">
+                              <div className="premium-spinner"></div>
+                              <span className="fun-status-text">{getFunStatus()}</span>
+                            </div>
+                          ) : "Result will appear here"}
                         </div>
                       )}
-                    </Card>
+                    </div>
+
+                    {/* Technical logs hidden from user */}
                   </div>
                 }
               />
             </div>
-
-            {/* Floating Gallery Button (SVG) */}
-            <button
-              className="fab-gallery"
-              onClick={() => setIsGalleryOpen(true)}
-              title="Open History"
-            >
-              <svg viewBox="0 0 24 24">
-                <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z" />
-              </svg>
-            </button>
 
             {/* Gallery Drawer Overlay */}
             <div
@@ -386,6 +473,7 @@ function App() {
                   onDragStart={handleGalleryDragStart}
                   onDelete={handleDeleteImage}
                   onDownload={handleDownloadImage}
+                  onShare={handleShareImage}
                   onImageClick={(url) => setLightboxImage(url)}
                 />
               </div>
@@ -404,7 +492,8 @@ function App() {
                     className="lightbox-download"
                     onClick={() => handleDownloadImage(lightboxImage)}
                   >
-                    ⬇️ Download
+                    <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', marginRight: '8px' }}><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
+                    Download
                   </button>
                 </div>
               </div>

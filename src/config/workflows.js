@@ -93,6 +93,8 @@ export const workflows = [
     {
         id: 'anime2realism',
         name: 'Anime to Realism',
+        category: 'Stylization',
+        tags: ['anime', 'photo', 'realistic'],
         description: "Convert anime illustrations into hyper-realistic photos while maintaining character and pose.",
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
@@ -104,6 +106,8 @@ export const workflows = [
     {
         id: 'anything2colormanga',
         name: 'Anything to Color Manga',
+        category: 'Stylization',
+        tags: ['manga', 'art', 'color'],
         description: "Apply a vibrant colored manga filter to any image, preserving details with a clean look.",
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
@@ -115,6 +119,8 @@ export const workflows = [
     {
         id: 'anything2comic',
         name: 'Anything to Comic',
+        category: 'Stylization',
+        tags: ['comic', 'sketch', 'art'],
         description: "Transform your photos into a classic comic book style with bold lines and dynamic shading.",
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
@@ -126,6 +132,8 @@ export const workflows = [
     {
         id: 'anything2real',
         name: 'Anything to Real',
+        category: 'Stylization',
+        tags: ['photo', 'hq', 'realistic'],
         description: "The ultimate realism filter. Turn any input into a high-end, studio-quality photograph.",
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
@@ -137,6 +145,8 @@ export const workflows = [
     {
         id: 'character2cosplay',
         name: 'Character to Cosplay',
+        category: 'Characters',
+        tags: ['character', 'outfit', 'cosplay'],
         description: 'Turn fictional characters into real-life people as if they were wearing a high-quality costume.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Character Image', target: { nodeId: '78', field: 'image' } },
@@ -148,6 +158,8 @@ export const workflows = [
     {
         id: 'character2figure',
         name: 'Character to Figure',
+        category: 'Characters',
+        tags: ['figure', 'toy', '3d'],
         description: "Digitize your subject into a collectible 3D PVC figurine with realistic plastic textures.",
         inputs: [
             { id: 'input_image', type: 'image', label: 'Character Image', target: { nodeId: '78', field: 'image' } },
@@ -158,8 +170,10 @@ export const workflows = [
     },
     {
         id: 'extractproduct',
-        name: 'Extract Product Image',
-        description: 'Studio lighting and background cleanup for products. Perfect for creating professional catalog imagery from any snapshot.',
+        name: 'Extract Product',
+        category: 'Utility',
+        tags: ['product', 'ecommerce', 'hq'],
+        description: 'Studio lighting and background cleanup for products. Perfect for creating professional catalog imagery.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Product Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'make a product image...', target: { nodeId: '435', field: 'value' } },
@@ -170,6 +184,8 @@ export const workflows = [
     {
         id: 'faceswap',
         name: 'Face Swap',
+        category: 'Face',
+        tags: ['face', 'swap', 'composite'],
         description: "Extract a face from one image and seamlessly blend it onto another's body.",
         inputs: [
             { id: 'body_image', type: 'image', label: 'Target Body Image', target: { nodeId: '78', field: 'image' } },
@@ -182,6 +198,8 @@ export const workflows = [
     {
         id: 'tryon',
         name: 'Virtual Try-On',
+        category: 'Characters',
+        tags: ['outfit', 'clothes', 'person'],
         description: "Virtually try on outfits from one image onto a person in another image.",
         inputs: [
             { id: 'person_image', type: 'image', label: 'Person Image', target: { nodeId: '78', field: 'image' } },
