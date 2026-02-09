@@ -93,7 +93,7 @@ export const workflows = [
     {
         id: 'anime2realism',
         name: 'Anime to Realism',
-        description: 'Transform anime style into realistic photos.',
+        description: 'Convert anime illustrations into hyper-realistic photography while maintaining the original character and pose.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'changed the image into realistic photo', target: { nodeId: '435', field: 'value' } },
@@ -104,7 +104,7 @@ export const workflows = [
     {
         id: 'anything2colormanga',
         name: 'Anything to Color Manga',
-        description: 'Convert any image to color manga style.',
+        description: 'Apply a professional vibrantly colored manga filter to any input image, preserving details with a clean cel-shaded look.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'make this image into colormanga style', target: { nodeId: '435', field: 'value' } },
@@ -115,7 +115,7 @@ export const workflows = [
     {
         id: 'anything2comic',
         name: 'Anything to Comic',
-        description: 'Convert images to American comic style.',
+        description: 'Transform your photos into a classic American comic book style with bold inking and dynamic shading.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'changed the image into realcomic style', target: { nodeId: '435', field: 'value' } },
@@ -126,7 +126,7 @@ export const workflows = [
     {
         id: 'anything2real',
         name: 'Anything to Real',
-        description: 'Hyper-realistic photography conversion.',
+        description: 'The ultimate realism filter. Use this to turn any input into a high-end, studio-quality photograph.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'transform into realistic photography', target: { nodeId: '435', field: 'value' } },
@@ -137,7 +137,7 @@ export const workflows = [
     {
         id: 'character2cosplay',
         name: 'Character to Cosplay',
-        description: 'Generate real cosplay photos from characters.',
+        description: 'Turn fictional characters into real-life people as if they were wearing a high-quality costume.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Character Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'generate a real photo, a model wearing the clothes...', target: { nodeId: '435', field: 'value' } },
@@ -148,7 +148,7 @@ export const workflows = [
     {
         id: 'character2figure',
         name: 'Character to Figure',
-        description: 'Turn a character into a 3D PVC Figure.',
+        description: 'Digitize your subject into a collectible 3D PVC figurine, complete with plastic textures and a studio background.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Character Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'Turn the subject into a realistic 3D PVC figurine...', target: { nodeId: '435', field: 'value' } },
@@ -159,7 +159,7 @@ export const workflows = [
     {
         id: 'extractproduct',
         name: 'Extract Product Image',
-        description: 'Isolate and enhance product imagery.',
+        description: 'Studio lighting and background cleanup for products. Perfect for creating professional catalog imagery from any snapshot.',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Product Image', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'make a product image...', target: { nodeId: '435', field: 'value' } },
@@ -170,7 +170,7 @@ export const workflows = [
     {
         id: 'faceswap',
         name: 'Face Swap',
-        description: 'Swap face from Source to Target Body.',
+        description: 'Extract a face from one image and seamlessly blend it onto the body of another. Use the Swap button to toggle positions.',
         inputs: [
             { id: 'body_image', type: 'image', label: 'Target Body Image', target: { nodeId: '78', field: 'image' } },
             { id: 'face_image', type: 'image', label: 'Face Source Image', target: { nodeId: '438', field: 'image' } },
@@ -182,7 +182,7 @@ export const workflows = [
     {
         id: 'tryon',
         name: 'Virtual Try-On',
-        description: 'Transfer outfit from one image to a person.',
+        description: 'Take an outfit from one image and virtually "dress" the person in the other image with it.',
         inputs: [
             { id: 'person_image', type: 'image', label: 'Person Image', target: { nodeId: '78', field: 'image' } },
             { id: 'outfit_image', type: 'image', label: 'Outfit Image', target: { nodeId: '438', field: 'image' } },

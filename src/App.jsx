@@ -17,6 +17,10 @@ function App() {
   const [logs, setLogs] = useState([]);
   const [history, setHistory] = useState([]); // Store all generated images
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [formValues, setFormValues] = useState({});
+  const [dragActive, setDragActive] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   const api = useRef(new ComfyApi());
 
@@ -25,6 +29,28 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Close sidebar on workflow selection (mobile) and reset form
+  useEffect(() => {
+    setSidebarOpen(false);
+
+    if (selectedWorkflowId) {
+      const workflow = workflows.find(w => w.id === selectedWorkflowId);
+      if (workflow) {
+        setFormValues(prev => {
+          const next = {};
+          workflow.inputs.forEach(input => {
+            if (input.type === 'image' && prev[input.id]) {
+              next[input.id] = prev[input.id];
+            } else {
+              next[input.id] = input.defaultValue || '';
+            }
+          });
+          return next;
+        });
+      }
+    }
+  }, [selectedWorkflowId]);
 
   // Helper: Convert URL to File object for re-upload
   const urlToFile = async (url, filename) => {
@@ -146,27 +172,104 @@ function App() {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
+  const handleDrag = (e, id) => {
+    e.preventDefault();
+    setDragActive(id);
+  };
+
+  const handleDrop = async (e, id) => {
+    e.preventDefault();
+    setDragActive(null);
+    let file;
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      file = e.dataTransfer.files[0];
+    } else {
+      const jsonData = e.dataTransfer.getData('application/json');
+      if (jsonData) {
+        try {
+          const img = JSON.parse(jsonData);
+          file = await urlToFile(img.url, img.filename || 'dropped.png');
+        } catch (err) { console.error(err); }
+      }
+    }
+    if (file) setFormValues(prev => ({ ...prev, [id]: file }));
+  };
+
+  const handleValueChange = (id, value) => {
+    setFormValues(prev => ({ ...prev, [id]: value }));
+  };
+
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+  const handleDownloadImage = (url, filename) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'generated-image.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDeleteImage = (filename) => {
+    setHistory(prev => prev.filter(img => img.filename !== filename));
+  };
 
   return (
     <div className="app-container">
+      {/* Mobile Header */}
+      <div className="mobile-header">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)', padding: '0.5rem' }}
+        >
+          ☰
+        </button>
+        <span style={{ fontWeight: '600', fontSize: '0.9rem', flex: 1, textAlign: 'center', marginRight: '2.5rem' }}>
+          {activeWorkflow ? activeWorkflow.name : 'Comfy Studio'}
+        </span>
+      </div>
+
+      {/* Overlay for mobile sidebar */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      ></div>
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div style={{ padding: '0 1rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: '1rem', margin: 0 }}>Comfy Studio</h2>
-          <button
-            onClick={toggleTheme}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '1.2rem',
-              color: 'var(--text-secondary)'
-            }}
-            title="Toggle Light/Dark Mode"
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={toggleTheme}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                color: 'var(--text-secondary)',
+                padding: '8px'
+              }}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+            {/* Close button for mobile modal */}
+            <button
+              className="mobile-close-btn"
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                background: 'var(--bg-hover)',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px 12px',
+                borderRadius: 'var(--radius)',
+                marginLeft: '8px'
+              }}
+            >
+              <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text)' }}>CLOSE</span>
+            </button>
+          </div>
         </div>
 
         <WorkflowSelector
@@ -195,64 +298,81 @@ function App() {
             <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h1 style={{ margin: 0 }}>{activeWorkflow.name}</h1>
-                <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 0' }}>{activeWorkflow.description}</p>
+                <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 0', display: 'none' }}>{activeWorkflow.description}</p>
               </div>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
-              {/* Form Section */}
-              <section>
-                <WorkflowForm
-                  workflow={activeWorkflow}
-                  onSubmit={handleWorkflowSubmit}
-                  isProcessing={isProcessing}
-                  urlToFile={urlToFile}
-                />
-
-                {/* Session Gallery integrated below the form or at bottom */}
-                <Gallery images={history} onDragStart={handleGalleryDragStart} />
-              </section>
-
-              {/* Preview Section */}
-              <section>
-                <Card title="Output Preview" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'var(--bg-sidebar)',
-                    borderRadius: 'var(--radius)',
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    {currentImage ? (
-                      <img src={currentImage} alt="Generated" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        {isProcessing ? "Processing generation..." : "Result will appear here"}
+            <div className="mobile-vertical-stack">
+              <WorkflowForm
+                workflow={activeWorkflow}
+                values={formValues}
+                onChange={handleValueChange}
+                onFileChange={handleValueChange}
+                onSubmit={handleWorkflowSubmit}
+                isProcessing={isProcessing}
+                dragActive={dragActive}
+                onDrag={handleDrag}
+                onDrop={handleDrop}
+                onImageClick={(url) => setLightboxImage(url)}
+                preview={
+                  <div className="main-preview-container">
+                    <Card title="Output Preview" style={{ minHeight: '300px', margin: '1rem 0' }}>
+                      <div className="preview-box">
+                        {currentImage ? (
+                          <img src={currentImage} alt="Generated" className="preview-img" />
+                        ) : (
+                          <div className="preview-placeholder">
+                            {isProcessing ? (
+                              <div className="loader-container">
+                                <div className="loader"></div>
+                                <span>Generating...</span>
+                              </div>
+                            ) : "Result will appear here"}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {logs.length > 0 && (
-                    <div style={{
-                      marginTop: '1rem',
-                      padding: '0.75rem',
-                      background: 'var(--bg-sidebar)',
-                      borderRadius: 'var(--radius)',
-                      fontSize: '0.8rem',
-                      fontFamily: 'monospace',
-                      color: 'var(--text-secondary)',
-                      maxHeight: '100px',
-                      overflowY: 'auto'
-                    }}>
-                      {logs.map((log, i) => <div key={i}>{log}</div>)}
-                    </div>
-                  )}
-                </Card>
-              </section>
+                      {logs.length > 0 && (
+                        <div className="log-container">
+                          {logs.map((log, i) => <div key={i}>{log}</div>)}
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                }
+              />
+
+              <hr style={{ border: 'none', borderBottom: '1px solid var(--border)', margin: '3rem 0' }} />
+
+              <div style={{ paddingBottom: '5rem' }}>
+                <h3 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>GENERATION HISTORY</h3>
+                <Gallery
+                  images={history}
+                  onDragStart={handleGalleryDragStart}
+                  onDelete={handleDeleteImage}
+                  onDownload={handleDownloadImage}
+                  onImageClick={(url) => setLightboxImage(url)}
+                />
+              </div>
             </div>
+            {/* Global Lightbox Component */}
+            {lightboxImage && (
+              <div
+                className="lightbox-overlay"
+                onClick={() => setLightboxImage(null)}
+              >
+                <div className="lightbox-content" onClick={e => e.stopPropagation()}>
+                  <img src={lightboxImage} alt="Large view" />
+                  <button className="lightbox-close" onClick={() => setLightboxImage(null)}>✕</button>
+                  <button
+                    className="lightbox-download"
+                    onClick={() => handleDownloadImage(lightboxImage)}
+                  >
+                    ⬇️ Download
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
