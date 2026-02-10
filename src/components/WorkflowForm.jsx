@@ -99,13 +99,13 @@ export const WorkflowForm = ({
                                         src={currentImage}
                                         alt="Generated"
                                         className="one-page-preview clickable"
-                                        onClick={() => onImageClick(currentImage, 'output')}
+                                        onClick={() => onImageClick({ url: currentImage, type: 'output' })}
                                     />
                                 )}
                                 <div className="output-frame-actions">
                                     <button
                                         className="frame-action-btn"
-                                        onClick={() => onImageClick(currentImage, 'output')}
+                                        onClick={() => onImageClick({ url: currentImage, type: 'output' })}
                                         title="Open Large View"
                                     >
                                         <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" /></svg>
@@ -136,6 +136,24 @@ export const WorkflowForm = ({
                         )}
                     </div>
 
+                    {/* Quick History Navigator */}
+                    {history.length > 0 && (
+                        <div className="history-nav-bar">
+                            {history.slice(0, 8).map((img, i) => (
+                                <div
+                                    key={i}
+                                    className={`nav-thumb-box ${currentImage === img.url ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setCurrentImage(img.url);
+                                        onImageClick({ url: img.url, type: 'output' });
+                                    }}
+                                >
+                                    <img src={img.url} alt={`History ${i}`} />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                 </div>
 
                 {/* History Navigator Removed from here - Access via Header/Menu */}
@@ -157,7 +175,7 @@ export const WorkflowForm = ({
                                             onClick={() => {
                                                 if (values[imageInputs[0].id]) {
                                                     const blobUrl = URL.createObjectURL(values[imageInputs[0].id]);
-                                                    onImageClick(blobUrl, 'input', imageInputs[0].id);
+                                                    onImageClick({ url: blobUrl, type: 'input', inputId: imageInputs[0].id });
                                                 } else {
                                                     openSelector(imageInputs[0].id);
                                                 }
@@ -216,7 +234,7 @@ export const WorkflowForm = ({
                                             onClick={() => {
                                                 if (values[imageInputs[1].id]) {
                                                     const blobUrl = URL.createObjectURL(values[imageInputs[1].id]);
-                                                    onImageClick(blobUrl, 'input', imageInputs[1].id);
+                                                    onImageClick({ url: blobUrl, type: 'input', inputId: imageInputs[1].id });
                                                 } else {
                                                     openSelector(imageInputs[1].id);
                                                 }
@@ -406,6 +424,7 @@ export const WorkflowForm = ({
                                                         src={img.url}
                                                         className="picker-img"
                                                         onClick={() => selectFromAppGallery(img)}
+                                                        onDoubleClick={() => onImageClick({ url: img.url, type: 'output' })}
                                                     />
                                                 )) : (
                                                     <div style={{ gridColumn: 'span 3', padding: '2rem', textAlign: 'center', opacity: 0.5 }}>

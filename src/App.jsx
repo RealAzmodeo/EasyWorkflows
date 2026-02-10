@@ -561,7 +561,7 @@ function App() {
                 dragActive={dragActive}
                 onDrag={handleDrag}
                 onDrop={handleDrop}
-                onImageClick={(url) => setLightboxImage(url)}
+                onImageClick={(data) => setLightboxImage(data)}
                 originalInputImage={originalInputImage}
                 currentImage={currentImage}
                 setCurrentImage={setCurrentImage}
@@ -581,7 +581,7 @@ function App() {
                               src={currentImage}
                               alt="Generated"
                               className="preview-img clickable"
-                              onClick={() => setLightboxImage(currentImage)}
+                              onClick={() => setLightboxImage({ url: currentImage, type: 'output' })}
                             />
                           )}
                           <div className="action-btn-group">
