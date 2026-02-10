@@ -10,6 +10,65 @@ import { HomeView } from './components/HomeView';
 import { ImageComparisonSlider } from './components/ImageComparisonSlider';
 import { urlToFile, saveFormToLocalStorage, loadFormFromLocalStorage, getFunStatus } from './lib/utils';
 
+// Helper Lightbox Component to manage ObjectURLs for Files
+const Lightbox = ({ data, onClose, onDownload, onShare, onDelete, onChange, onRemove }) => {
+  const [displayUrl, setDisplayUrl] = useState(null);
+
+  useEffect(() => {
+    let url = null;
+    if (data.url instanceof File || data.url instanceof Blob) {
+      url = URL.createObjectURL(data.url);
+      setDisplayUrl(url);
+    } else {
+      setDisplayUrl(data.url);
+    }
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    }
+  }, [data.url]);
+
+  if (!displayUrl) return null;
+
+  return (
+    <div className="lightbox-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
+      <div className="lightbox-content" onClick={e => e.stopPropagation()}>
+        <img src={displayUrl} alt="Lightbox" />
+        <button className="lightbox-close" onClick={onClose}>✕</button>
+
+        <div className="lightbox-actions-bar">
+          {data.type === 'output' ? (
+            <>
+              <button className="lightbox-action-btn" onClick={() => onDownload(data.url, 'output.png')}>
+                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
+                SAVE
+              </button>
+              <button className="lightbox-action-btn" onClick={() => onShare(data.url, 'share.png')}>
+                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z" /></svg>
+                SHARE
+              </button>
+              <button className="lightbox-action-btn delete" onClick={() => onDelete(data.url.split('filename=')[1]?.split('&')[0])}>
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
+                DELETE
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="lightbox-action-btn" onClick={() => onChange(data.inputId)}>
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" /></svg>
+                CHANGE
+              </button>
+              <button className="lightbox-action-btn delete" onClick={() => onRemove(data.inputId)}>
+                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
+                REMOVE
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [status, setStatus] = useState('disconnected');
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(() => localStorage.getItem('selectedWorkflowId'));
@@ -184,7 +243,7 @@ function App() {
     return () => clearInterval(interval);
   }, [activePromptId]);
 
-  const handleWorkflowSubmit = async () => {
+  const handleWorkflowSubmit = async (retryCount = 0) => {
     const values = formValues;
     setIsProcessing(true);
     setProgress(0);
@@ -192,6 +251,29 @@ function App() {
     setCurrentImage(null);
 
     try {
+      // 0. Connection Heartbeat Check
+      try {
+        await api.current.getSystemStats();
+      } catch (connErr) {
+        if (retryCount === 0) {
+          setLogs(['Engine offline. Starting servers on PC... 🚀']);
+          setProgress(5);
+          await api.current.wakeUp();
+
+          // Wait and retry
+          for (let i = 1; i <= 15; i++) {
+            await new Promise(r => setTimeout(r, 1000));
+            const remaining = 15 - i;
+            setProgress(5 + (i * 6));
+            setLogs([`Starting servers... ${remaining}s remaining`]);
+          }
+
+          return handleWorkflowSubmit(1);
+        } else {
+          throw new Error("Could not connect to ComfyUI after wake-up attempt.");
+        }
+      }
+
       // 1. Upload Images
       const inputs = { ...values };
       const workflowConfig = workflows.find(w => w.id === selectedWorkflowId);
@@ -528,7 +610,9 @@ function App() {
                           {isProcessing ? (
                             <div className="loader-container">
                               <div className="premium-spinner"></div>
-                              <span className="fun-status-text">{getFunStatus(selectedWorkflowId)}</span>
+                              <span className="fun-status-text">
+                                {logs[0]?.includes('Starting servers') ? logs[0] : getFunStatus(selectedWorkflowId)}
+                              </span>
                             </div>
                           ) : "Result will appear here"}
                         </div>
@@ -542,55 +626,57 @@ function App() {
             </div>
 
             {/* Gallery Drawer Overlay */}
-            <div
-              className={`drawer-overlay ${isGalleryOpen ? 'open' : ''}`}
-              onClick={() => setIsGalleryOpen(false)}
-            ></div>
-
-            {/* Gallery Drawer */}
-            <aside className={`gallery-drawer ${isGalleryOpen ? 'open' : ''}`}>
-              <div className="drawer-header">
-                <h3 style={{ margin: 0 }}>History</h3>
-                <button
-                  onClick={() => setIsGalleryOpen(false)}
-                  style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)' }}
-                >
-                  ✕
-                </button>
+            {/* Gallery Drawer Overlay */}
+            {isGalleryOpen && (
+              <div
+                className="drawer-overlay"
+                onClick={() => setIsGalleryOpen(false)}
+              >
+                <aside className="drawer-right" onClick={e => e.stopPropagation()}>
+                  <div className="drawer-header">
+                    <h3 style={{ margin: 0 }}>History</h3>
+                    <button
+                      onClick={() => setIsGalleryOpen(false)}
+                      style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="drawer-content">
+                    <Gallery
+                      images={history}
+                      onDragStart={handleGalleryDragStart}
+                      onDelete={handleDeleteImage}
+                      onDownload={handleDownloadImage}
+                      onShare={handleShareImage}
+                      onImageClick={(url) => {
+                        setLightboxImage(url);
+                        setIsGalleryOpen(false);
+                      }}
+                    />
+                  </div>
+                </aside>
               </div>
-              <div className="drawer-content">
-                <Gallery
-                  images={history}
-                  onDragStart={handleGalleryDragStart}
-                  onDelete={handleDeleteImage}
-                  onDownload={handleDownloadImage}
-                  onShare={handleShareImage}
-                  onImageClick={(url) => {
-                    setLightboxImage(url);
-                    setIsGalleryOpen(false);
-                  }}
-                />
-              </div>
-            </aside>
+            )}
 
             {/* Global Lightbox Component */}
             {lightboxImage && (
-              <div
-                className="lightbox-overlay"
-                onClick={() => setLightboxImage(null)}
-              >
-                <div className="lightbox-content" onClick={e => e.stopPropagation()}>
-                  <img src={lightboxImage} alt="Large view" />
-                  <button className="lightbox-close" onClick={() => setLightboxImage(null)}>✕</button>
-                  <button
-                    className="lightbox-download"
-                    onClick={() => handleDownloadImage(lightboxImage)}
-                  >
-                    <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', marginRight: '8px' }}><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
-                    Download
-                  </button>
-                </div>
-              </div>
+              <Lightbox
+                data={lightboxImage}
+                onClose={() => setLightboxImage(null)}
+                onDownload={handleDownloadImage}
+                onShare={handleShareImage}
+                onDelete={handleDeleteImage}
+                onChange={(inputId) => {
+                  const fileInput = document.querySelector(`input[data-inputid="${inputId}"]`);
+                  fileInput?.click();
+                  setLightboxImage(null);
+                }}
+                onRemove={(inputId) => {
+                  handleValueChange(inputId, null);
+                  setLightboxImage(null);
+                }}
+              />
             )}
           </div>
         )}

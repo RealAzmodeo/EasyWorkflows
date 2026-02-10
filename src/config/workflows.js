@@ -43,7 +43,7 @@ const faceSwapTemplate = {
     "433:89": { "inputs": { "lora_name": "QWEN\\Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors", "strength_model": 1, "model": ["433:119", 0] }, "class_type": "LoraLoaderModelOnly" },
     "433:117": { "inputs": { "image": ["78", 0] }, "class_type": "FluxKontextImageScale" },
     "433:88": { "inputs": { "pixels": ["433:117", 0], "vae": ["433:39", 0] }, "class_type": "VAEEncode" },
-    "433:119": { "inputs": { "lora_name": "QWEN\\2509\\2509 - FaceSwapV4.safetensors", "strength_model": 1, "model": ["433:118", 0] }, "class_type": "LoraLoaderModelOnly" }
+    "433:119": { "inputs": { "lora_name": "QWEN\\EDIT\\2509 - Face Swap.safetensors", "strength_model": 1, "model": ["433:118", 0] }, "class_type": "LoraLoaderModelOnly" }
 };
 
 const tryOnTemplate = {
@@ -64,7 +64,7 @@ const tryOnTemplate = {
     "433:89": { "inputs": { "lora_name": "QWEN\\Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors", "strength_model": 1, "model": ["433:119", 0] }, "class_type": "LoraLoaderModelOnly" },
     "433:117": { "inputs": { "image": ["78", 0] }, "class_type": "FluxKontextImageScale" },
     "433:88": { "inputs": { "pixels": ["433:117", 0], "vae": ["433:39", 0] }, "class_type": "VAEEncode" },
-    "433:119": { "inputs": { "lora_name": "QWEN\\2509\\2509 - TryOn.safetensors", "strength_model": 1, "model": ["433:118", 0] }, "class_type": "LoraLoaderModelOnly" }
+    "433:119": { "inputs": { "lora_name": "QWEN\\EDIT\\EDIT - clothes_tryon.safetensors", "strength_model": 1, "model": ["433:118", 0] }, "class_type": "LoraLoaderModelOnly" }
 };
 
 // Function to generate other templates which are identical to Anime2Realism but different Lora/Message
@@ -75,7 +75,7 @@ const createSingleImageTemplate = (loraName, defaultPrompt) => {
     return t;
 };
 
-const anything2ColorMangaTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - Anything2ColorManga.safetensors", "make this image into colormanga style, high quality");
+const anything2ColorMangaTemplate = createSingleImageTemplate("QWEN\\Base\\Base - Anything2ColorManga.safetensors", "make this image into colormanga style, high quality");
 const anything2ComicTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - Real2Comic.safetensors", "changed the image into realcomic style"); // Note: Lora name from JSON is Real2Comic
 const anything2RealTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - Anything2Real.safetensors", "transform into realistic photography");
 const character2CosplayTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - Character2Cosplay.safetensors", "generate a real photo, a model wearing the clothes and accessories...");

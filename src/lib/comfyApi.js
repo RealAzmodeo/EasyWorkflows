@@ -215,4 +215,17 @@ export class ComfyApi {
                 break;
         }
     }
+
+    /**
+     * Trigger remote startup of ComfyUI engine
+     */
+    async wakeUp() {
+        try {
+            const res = await fetch('/api/start-comfy');
+            return await res.json();
+        } catch (e) {
+            console.error('Wake up failed:', e);
+            throw e;
+        }
+    }
 }
