@@ -81,6 +81,7 @@ const anything2RealTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - Anyt
 const character2CosplayTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - Character2Cosplay.safetensors", "generate a real photo, a model wearing the clothes and accessories...");
 const character2FigureTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - TurnIntoPlasticFigure.safetensors", "Turn the subject into a realistic 3D PVC figurine...");
 const extractProductImageTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - ProductImage.safetensors", "make a product image...");
+const anything2ColoringBookTemplate = createSingleImageTemplate("QWEN\\Base\\Base - Anything2ColoringBook.safetensors", "Turn into a black and white coloring book page with a plain white background");
 
 // --- WORKFLOW LIST ---
 
@@ -122,6 +123,25 @@ export const workflows = [
             { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '433:3', field: 'seed' } }
         ],
         apiTemplate: anything2ColorMangaTemplate
+    },
+    {
+        id: 'anything2coloringbook',
+        name: 'Anything to Coloring Book',
+        category: 'Stylization',
+        tags: ['coloring', 'sketch', 'bw'],
+        description: "Turn any image into a detailed black and white coloring book page with clean outlines.",
+        triggerWords: ["Turn into a black and white coloring book page"],
+        tips: [
+            "Works amazingly with characters and complex scenery.",
+            "Use it to create personalized coloring pages for children or relaxation.",
+            "Simple backgrounds in the source image result in cleaner outlines."
+        ],
+        inputs: [
+            { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
+            { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'Turn into a black and white coloring book page with a plain white background', target: { nodeId: '435', field: 'value' } },
+            { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '433:3', field: 'seed' } }
+        ],
+        apiTemplate: anything2ColoringBookTemplate
     },
     {
         id: 'anything2comic',

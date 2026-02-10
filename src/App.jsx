@@ -11,59 +11,86 @@ import { ImageComparisonSlider } from './components/ImageComparisonSlider';
 import { urlToFile, saveFormToLocalStorage, loadFormFromLocalStorage, getFunStatus, saveHistoryToLocalStorage, loadHistoryFromLocalStorage } from './lib/utils';
 
 // Helper Lightbox Component to manage ObjectURLs for Files
-const Lightbox = ({ data, onClose, onDownload, onShare, onDelete, onChange, onRemove }) => {
+const Lightbox = ({ data, history, onClose, onDownload, onShare, onDelete, onChange, onRemove, onImageClick }) => {
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (!history) return -1;
+    return history.findIndex(img => img.url === data.url);
+  });
+
+  const activeImage = currentIndex !== -1 ? history[currentIndex] : data;
   const [displayUrl, setDisplayUrl] = useState(null);
 
   useEffect(() => {
     let url = null;
-    if (data.url instanceof File || data.url instanceof Blob) {
-      url = URL.createObjectURL(data.url);
+    const targetUrl = activeImage.url;
+
+    if (targetUrl instanceof File || targetUrl instanceof Blob) {
+      url = URL.createObjectURL(targetUrl);
       setDisplayUrl(url);
     } else {
-      setDisplayUrl(data.url);
+      setDisplayUrl(targetUrl);
     }
     return () => {
       if (url) URL.revokeObjectURL(url);
     }
-  }, [data.url]);
+  }, [activeImage.url]);
 
   if (!displayUrl) return null;
 
   return (
-    <div className="lightbox-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
+    <div className="lightbox-overlay" onClick={onClose}>
+      <button className="lightbox-close" onClick={onClose}>✕</button>
       <div className="lightbox-content" onClick={e => e.stopPropagation()}>
         <img src={displayUrl} alt="Lightbox" />
-        <button className="lightbox-close" onClick={onClose}>✕</button>
 
         <div className="lightbox-actions-bar">
-          {data.type === 'output' ? (
+          {activeImage.type === 'output' || activeImage.filename ? (
             <>
-              <button className="lightbox-action-btn" onClick={() => onDownload(data.url, 'output.png')}>
+              <button className="lightbox-action-btn" onClick={() => onDownload(activeImage.url, activeImage.filename || 'output.png')}>
                 <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
                 SAVE
               </button>
-              <button className="lightbox-action-btn" onClick={() => onShare(data.url, 'share.png')}>
+              <button className="lightbox-action-btn" onClick={() => onShare(activeImage.url, activeImage.filename || 'share.png')}>
                 <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z" /></svg>
                 SHARE
               </button>
-              <button className="lightbox-action-btn delete" onClick={() => onDelete(data.url.split('filename=')[1]?.split('&')[0])}>
+              <button className="lightbox-action-btn delete" onClick={() => {
+                const filename = activeImage.filename || activeImage.url.split('filename=')[1]?.split('&')[0];
+                onDelete(filename);
+                onClose();
+              }}>
                 <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
                 DELETE
               </button>
             </>
           ) : (
             <>
-              <button className="lightbox-action-btn" onClick={() => onChange(data.inputId)}>
+              <button className="lightbox-action-btn" onClick={() => onChange(activeImage.inputId)}>
                 <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" /></svg>
                 CHANGE
               </button>
-              <button className="lightbox-action-btn delete" onClick={() => onRemove(data.inputId)}>
+              <button className="lightbox-action-btn delete" onClick={() => onRemove(activeImage.inputId)}>
                 <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
                 REMOVE
               </button>
             </>
           )}
         </div>
+
+        {/* History Navigator inside Lightbox */}
+        {history && history.length > 0 && (
+          <div className="history-nav-bar lightbox-nav">
+            {history.slice(0, 12).map((img, i) => (
+              <div
+                key={i}
+                className={`nav-thumb-box ${currentIndex === i ? 'active' : ''}`}
+                onClick={() => setCurrentIndex(i)}
+              >
+                <img src={img.url} alt={`History ${i}`} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -654,8 +681,8 @@ function App() {
                       onDelete={handleDeleteImage}
                       onDownload={handleDownloadImage}
                       onShare={handleShareImage}
-                      onImageClick={(url) => {
-                        setLightboxImage(url);
+                      onImageClick={(data) => {
+                        setLightboxImage(data);
                         setIsGalleryOpen(false);
                       }}
                     />
@@ -668,6 +695,7 @@ function App() {
             {lightboxImage && (
               <Lightbox
                 data={lightboxImage}
+                history={history}
                 onClose={() => setLightboxImage(null)}
                 onDownload={handleDownloadImage}
                 onShare={handleShareImage}

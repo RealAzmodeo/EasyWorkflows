@@ -24,7 +24,7 @@ export const Gallery = ({ images, onDragStart, onDelete, onDownload, onShare, on
                     }}
                     draggable
                     onDragStart={(e) => onDragStart(e, img)}
-                    onClick={() => onImageClick(img.url)}
+                    onClick={() => onImageClick({ ...img, type: 'output' })}
                 >
                     <img
                         src={img.url}
