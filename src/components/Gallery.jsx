@@ -16,25 +16,33 @@ export const Gallery = ({ images, onDragStart, onDelete, onDownload, onShare, on
                     style={{
                         position: 'relative',
                         aspectRatio: '1/1',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg-sidebar)',
                         cursor: 'pointer'
                     }}
                     draggable
                     onDragStart={(e) => onDragStart(e, img)}
                     onClick={() => onImageClick({ ...img, type: 'output' })}
                 >
-                    <img
-                        src={img.url}
-                        alt={`Generated ${index}`}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                        }}
-                    />
+                    <div className="gallery-item-image-mask" style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-sidebar)',
+                    }}>
+                        <img
+                            src={img.url}
+                            alt={`Generated ${index}`}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                            }}
+                        />
+                    </div>
 
                     {/* Management Overlays */}
                     <div className="action-btn-group">

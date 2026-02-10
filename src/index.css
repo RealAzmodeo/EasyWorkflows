@@ -511,10 +511,18 @@ textarea:focus {
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
-  overflow: hidden;
+  /* Removed overflow: hidden to allow button to pop out */
 }
 
-.slot-target img {
+.slot-image-mask {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.slot-image-mask img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1245,13 +1253,82 @@ textarea:focus {
   padding: 0 0.5rem;
 }
 
+/* --- Fixes for History Delete Button & Image Fit --- */
+
+.history-thumb-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 6px;
+}
+
+/* Updated to work with Gallery.jsx restructuring */
+.gallery-item-image-mask {
+  transition: all 0.2s ease;
+}
+
+.gallery-item-wrapper:hover .gallery-item-image-mask {
+  transform: translateY(-2px);
+  border-color: rgba(var(--primary-rgb), 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.delete-btn-floating {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff4757;
+  color: white;
+  border: 2px solid var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.delete-btn-floating:hover {
+  transform: scale(1.1);
+  background: #ff6b81;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+  display: block;
+}
+
 .preview-box {
   background: var(--bg-sidebar);
   border-radius: 12px;
-  aspect-ratio: 1/1;
   border: 1px solid var(--border);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin-bottom: 0.5rem;
+  /* Proportional height based on content or flex */
+  min-height: 300px;
+  max-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.comparison-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .text-btn-tiny {
@@ -2174,58 +2251,6 @@ textarea:focus {
   height: 100%;
   object-fit: contain !important;
   /* Force contain */
-  display: block;
-}
-
-.comparison-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  background: #000;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* --- Fixes for History Delete Button & Image Fit --- */
-
-.history-thumb-wrapper {
-  position: relative;
-  display: inline-block;
-  margin: 6px;
-}
-
-.delete-btn-floating {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ff4757;
-  color: white;
-  border: 2px solid var(--bg-card);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  z-index: 5;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
-  line-height: 1;
-  padding: 0;
-}
-
-.delete-btn-floating:hover {
-  transform: scale(1.1);
-  background: #ff6b81;
-}
-
-.preview-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
   display: block;
 }
 
