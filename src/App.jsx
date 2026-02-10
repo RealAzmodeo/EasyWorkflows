@@ -8,7 +8,7 @@ import './index.css';
 import { Gallery } from './components/Gallery';
 import { HomeView } from './components/HomeView';
 import { ImageComparisonSlider } from './components/ImageComparisonSlider';
-import { urlToFile, saveFormToLocalStorage, loadFormFromLocalStorage, getFunStatus } from './lib/utils';
+import { urlToFile, saveFormToLocalStorage, loadFormFromLocalStorage, getFunStatus, saveHistoryToLocalStorage, loadHistoryFromLocalStorage } from './lib/utils';
 
 // Helper Lightbox Component to manage ObjectURLs for Files
 const Lightbox = ({ data, onClose, onDownload, onShare, onDelete, onChange, onRemove }) => {
@@ -76,7 +76,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
-  const [history, setHistory] = useState([]); // Store all generated images
+  const [history, setHistory] = useState(() => loadHistoryFromLocalStorage('galleryHistory')); // Store all generated images
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [activePromptId, setActivePromptId] = useState(() => localStorage.getItem('activePromptId'));
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -94,6 +94,11 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Persist gallery history
+  useEffect(() => {
+    saveHistoryToLocalStorage('galleryHistory', history);
+  }, [history]);
 
   // Close sidebar on workflow selection (mobile) and reset form
   useEffect(() => {

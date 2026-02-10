@@ -95,3 +95,33 @@ export const getFunStatus = (workflowId) => {
     const categoryMessages = messages[category] || messages['Utility'];
     return categoryMessages[Math.floor(Date.now() / 2000) % categoryMessages.length];
 };
+
+/**
+ * Save history to localStorage.
+ * @param {string} key - localStorage key.
+ * @param {Array} history - Array of image objects.
+ */
+export const saveHistoryToLocalStorage = (key, history) => {
+    try {
+        // Keep only the last 50 items to stay within storage limits
+        const truncated = history.slice(0, 50);
+        localStorage.setItem(key, JSON.stringify(truncated));
+    } catch (error) {
+        console.error("Error saving history:", error);
+    }
+};
+
+/**
+ * Load history from localStorage.
+ * @param {string} key - localStorage key.
+ * @returns {Array} - The parsed history array or an empty array.
+ */
+export const loadHistoryFromLocalStorage = (key) => {
+    try {
+        const saved = localStorage.getItem(key);
+        return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+        console.error("Error loading history:", error);
+        return [];
+    }
+};
