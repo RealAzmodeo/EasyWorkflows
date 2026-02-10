@@ -509,10 +509,11 @@ function App() {
         <div className="mobile-header">
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <button
-              onClick={() => setSidebarOpen(true)}
-              style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)', padding: '0.5rem' }}
+              onClick={() => setSelectedWorkflowId(null)}
+              style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)', padding: '0.5rem', display: 'flex', alignItems: 'center' }}
+              title="Home"
             >
-              ☰
+              <svg viewBox="0 0 24 24" style={{ width: '22px', height: '22px', fill: 'currentColor' }}><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
             </button>
             {/* Added status dot in mobile header */}
             <span className={`status-indicator status-${status}`} style={{ width: '10px', height: '10px', marginLeft: '-5px' }}></span>
