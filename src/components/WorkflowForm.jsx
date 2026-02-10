@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Button, Input } from './ui/components';
 import { FilePreview } from './FilePreview';
 import { ImageComparisonSlider } from './ImageComparisonSlider';
+import { CameraCropGizmo } from './CameraCropGizmo';
 
 export const WorkflowForm = ({
     workflow,
@@ -300,6 +301,22 @@ export const WorkflowForm = ({
 
 
                             {/* Pro Tips / Trigger Words moved to Modal */}
+                        </div>
+
+                        {/* g. Specialized Experimental Inputs (Crop/Camera) */}
+                        <div className="specialized-inputs">
+                            {workflow.id === 'qwen-camera' && values[imageInputs[0]?.id] && (
+                                <div className="experimental-control-group" style={{ padding: 0, overflow: 'hidden', border: 'none' }}>
+                                    <CameraCropGizmo
+                                        imageUrl={values[imageInputs[0].id]}
+                                        cameraValues={values['camera_angle'] || {}}
+                                        onCameraChange={(newVals) => {
+                                            const current = values['camera_angle'] || {};
+                                            onChange('camera_angle', { ...current, ...newVals });
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* f. Generation Button */}

@@ -115,6 +115,7 @@ function App() {
   const [showComparison, setShowComparison] = useState(false);
 
   const api = useRef(new ComfyApi());
+  const processingRef = useRef(false);
 
   // Apply theme to body
   useEffect(() => {
@@ -160,47 +161,76 @@ function App() {
     const comfy = api.current;
 
     const handleStatus = (data) => {
+      // General status is fine, but we only update our UI status if it's relevant
       if (data.status) setStatus(data.status);
     };
 
     const handleProgress = (data) => {
+      // CRITICAL: Only show progress if it belongs to our current active prompt
+      if (!activePromptId || data.prompt_id !== activePromptId) return;
+
       const percent = Math.round((data.value / data.max) * 100);
       setProgress(percent);
       setLogs(prev => [...prev.slice(-4), `Step ${data.value}/${data.max}`]);
     };
 
     const handleExecuted = (data) => {
-      if (activePromptId && data.prompt_id !== activePromptId) return;
-
-      setIsProcessing(false);
-      setProgress(100);
-      setTimeout(() => setProgress(0), 1000);
-
-      localStorage.removeItem('activePromptId');
-      setActivePromptId(null);
+      // CRITICAL: If we are waiting for a specific prompt and this isn't it, ignore.
+      if (!activePromptId || data.prompt_id !== activePromptId) return;
 
       // Retrieve image
       const images = data.output.images;
+
+      // 1. ALWAYS update the image preview if we got one (could be intermediate)
       if (images && images.length > 0) {
         const img = images[0];
         const url = `/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
 
         setCurrentImage(url);
-        setLogs(prev => [...prev, 'Generation Complete']);
+        setLogs(prev => [...prev.slice(-4), 'Image Received']);
 
         // Add to history (deduplicate)
         setHistory(prev => {
-          // Check if the latest image is the same
           if (prev.length > 0 && prev[0].filename === img.filename) return prev;
           return [{ url, filename: img.filename, type: img.type, subfolder: img.subfolder }, ...prev];
         });
       }
+
+      // 2. DECIDE when to unlock the UI (mark job as complete)
+      let shouldUnlock = false;
+
+      // Special handling for Camera Workflow to avoid premature unlock on Node 93 (Camera)
+      if (selectedWorkflowId === 'qwen-camera') {
+        // Only unlock on the final PreviewImage node (ID '96')
+        if (data.node === '96') {
+          shouldUnlock = true;
+        } else {
+          console.log(`[CameraWorkflow] Ignored intermediate execution from node ${data.node}`);
+        }
+      } else {
+        // Default Strict Behavior: Only unlock if we got images 
+        // (assuming simpler workflows where any image = done)
+        if (images && images.length > 0) {
+          shouldUnlock = true;
+        }
+      }
+
+      if (shouldUnlock) {
+        setIsProcessing(false);
+        processingRef.current = false;
+        setProgress(100);
+        setTimeout(() => setProgress(0), 1000);
+
+        localStorage.removeItem('activePromptId');
+        setActivePromptId(null);
+        setLogs(prev => [...prev, 'Generation Complete']);
+      }
     };
 
     const handleExecutionStart = (data) => {
+      if (!activePromptId || data.prompt_id !== activePromptId) return;
       // If we see node: null after starting, it might mean it's finished or skipped
       if (data.node === null) {
-        // Potential completion signal if missed 'executed'
         console.log('Execution stream finished for:', data.prompt_id);
       }
     };
@@ -212,9 +242,12 @@ function App() {
 
     // Also log execution errors
     comfy.on('execution_error', (data) => {
+      if (!activePromptId || data.prompt_id !== activePromptId) return;
+
       console.error('WS Execution Error:', data);
       setLogs(prev => [...prev, `Error: ${data.exception_type} - ${data.exception_message}`]);
       setIsProcessing(false);
+      processingRef.current = false;
       setProgress(0);
     });
 
@@ -247,6 +280,7 @@ function App() {
             return [{ url, filename: img.filename, type: img.type, subfolder: img.subfolder }, ...prev];
           });
           setIsProcessing(false);
+          processingRef.current = false;
           setProgress(0);
           localStorage.removeItem('activePromptId');
           setActivePromptId(null);
@@ -275,9 +309,19 @@ function App() {
     return () => clearInterval(interval);
   }, [activePromptId]);
 
-  const handleWorkflowSubmit = async (retryCount = 0) => {
-    const values = formValues;
+  const handleWorkflowSubmit = async (e, retryCount = 0) => {
+    // If it's a click event, prevent default
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+    // Use both state and ref for a super-hardened lock
+    if (isProcessing || processingRef.current) {
+      console.warn('Submission already in progress, ignoring...');
+      return;
+    }
+
     setIsProcessing(true);
+    processingRef.current = true;
+    const values = formValues;
     setProgress(0);
     setLogs(['Starting...']);
     setCurrentImage(null);
@@ -339,16 +383,26 @@ function App() {
       }
 
       // 2. Prepare Prompt JSON
-      setLogs(prev => [...prev, 'Queueing workflow...']);
-
-      // Clone the template
+      setLogs(prev => [...prev, 'Injecting parameters...']);
       const finalWorkflow = JSON.parse(JSON.stringify(workflowConfig.apiTemplate));
 
       // Inject values
       workflowConfig.inputs.forEach(inputConfig => {
-        const { nodeId, field } = inputConfig.target;
+        const { nodeId, field, fields } = inputConfig.target;
         if (finalWorkflow[nodeId] && finalWorkflow[nodeId].inputs) {
-          finalWorkflow[nodeId].inputs[field] = inputs[inputConfig.id];
+          const val = inputs[inputConfig.id];
+
+          if (fields && typeof val === 'object' && val !== null) {
+            // Multi-field injection
+            fields.forEach(f => {
+              if (val[f] !== undefined) {
+                finalWorkflow[nodeId].inputs[f] = val[f];
+              }
+            });
+          } else if (field && val !== undefined) {
+            // Single-field injection
+            finalWorkflow[nodeId].inputs[field] = val;
+          }
         }
       });
 
@@ -367,6 +421,7 @@ function App() {
       console.error(err);
       setLogs(prev => [...prev, `Error: ${err.message}`]);
       setIsProcessing(false);
+      processingRef.current = false;
       setProgress(0);
     }
   };
@@ -452,27 +507,33 @@ function App() {
       {/* Mobile Header - Only visible when in a workflow */}
       {selectedWorkflowId && (
         <div className="mobile-header">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)', padding: '0.5rem' }}
-          >
-            ☰
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={() => setSidebarOpen(true)}
+              style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text)', padding: '0.5rem' }}
+            >
+              ☰
+            </button>
+            {/* Added status dot in mobile header */}
+            <span className={`status-indicator status-${status}`} style={{ width: '10px', height: '10px', marginLeft: '-5px' }}></span>
+          </div>
           <span
-            style={{ fontWeight: '600', fontSize: '0.9rem', flex: 1, textAlign: 'center' }}
+            style={{ fontWeight: '700', fontSize: '1rem', flex: 1, textAlign: 'center', fontFamily: 'Outfit, sans-serif' }}
           >
-            {activeWorkflow ? activeWorkflow.name : 'ALLAI'}
+            {activeWorkflow ? activeWorkflow.name.split(' ').slice(-1)[0].toUpperCase() : 'ALLAI'}
           </span>
-          {/* Gallery Button in Mobile Header */}
-          <button
-            onClick={() => setIsGalleryOpen(true)}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center' }}
-            title="History"
-          >
-            <svg viewBox="0 0 24 24" style={{ width: '22px', height: '22px', fill: 'var(--text)' }}>
-              <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z" />
-            </svg>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {/* Gallery Button in Mobile Header */}
+            <button
+              onClick={() => setIsGalleryOpen(true)}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center' }}
+              title="History"
+            >
+              <svg viewBox="0 0 24 24" style={{ width: '22px', height: '22px', fill: 'var(--text)' }}>
+                <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4 2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 

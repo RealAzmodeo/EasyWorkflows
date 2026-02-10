@@ -83,6 +83,297 @@ const character2FigureTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - T
 const extractProductImageTemplate = createSingleImageTemplate("QWEN\\2509\\2509 - ProductImage.safetensors", "make a product image...");
 const anything2ColoringBookTemplate = createSingleImageTemplate("QWEN\\Base\\Base - Anything2ColoringBook.safetensors", "Turn into a black and white coloring book page with a plain white background");
 
+const cameraAngleTemplate = {
+    "41": {
+        "inputs": {
+            "image": "example.png"
+        },
+        "class_type": "LoadImage",
+        "_meta": {
+            "title": "Load Image"
+        }
+    },
+    "93": {
+        "inputs": {
+            "horizontal_angle": 131,
+            "vertical_angle": -30,
+            "zoom": 5,
+            "default_prompts": "",
+            "camera_view": false,
+            "image": [
+                "41",
+                0
+            ]
+        },
+        "class_type": "QwenMultiangleCameraNode",
+        "_meta": {
+            "title": "Qwen Multiangle Camera"
+        }
+    },
+    "89:67": {
+        "inputs": {
+            "shift": 3.1,
+            "model": [
+                "89:74",
+                0
+            ]
+        },
+        "class_type": "ModelSamplingAuraFlow",
+        "_meta": {
+            "title": "ModelSamplingAuraFlow"
+        }
+    },
+    "89:10": {
+        "inputs": {
+            "vae_name": "qwen_image_vae.safetensors"
+        },
+        "class_type": "VAELoader",
+        "_meta": {
+            "title": "Load VAE"
+        }
+    },
+    "89:12": {
+        "inputs": {
+            "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+            "weight_dtype": "default"
+        },
+        "class_type": "UNETLoader",
+        "_meta": {
+            "title": "Load Diffusion Model"
+        }
+    },
+    "89:71": {
+        "inputs": {
+            "reference_latents_method": "index_timestep_zero",
+            "conditioning": [
+                "89:69",
+                0
+            ]
+        },
+        "class_type": "FluxKontextMultiReferenceLatentMethod",
+        "_meta": {
+            "title": "Edit Model Reference Method"
+        }
+    },
+    "89:70": {
+        "inputs": {
+            "reference_latents_method": "index_timestep_zero",
+            "conditioning": [
+                "89:68",
+                0
+            ]
+        },
+        "class_type": "FluxKontextMultiReferenceLatentMethod",
+        "_meta": {
+            "title": "Edit Model Reference Method"
+        }
+    },
+    "89:64": {
+        "inputs": {
+            "strength": 1,
+            "model": [
+                "89:67",
+                0
+            ]
+        },
+        "class_type": "CFGNorm",
+        "_meta": {
+            "title": "CFGNorm"
+        }
+    },
+    "89:69": {
+        "inputs": {
+            "prompt": "",
+            "clip": [
+                "89:93",
+                1
+            ],
+            "vae": [
+                "89:10",
+                0
+            ],
+            "image1": [
+                "89:88",
+                0
+            ]
+        },
+        "class_type": "TextEncodeQwenImageEditPlus",
+        "_meta": {
+            "title": "TextEncodeQwenImageEditPlus"
+        }
+    },
+    "89:8": {
+        "inputs": {
+            "samples": [
+                "89:65",
+                0
+            ],
+            "vae": [
+                "89:10",
+                0
+            ]
+        },
+        "class_type": "VAEDecode",
+        "_meta": {
+            "title": "VAE Decode"
+        }
+    },
+    "89:68": {
+        "inputs": {
+            "prompt": [
+                "93",
+                0
+            ],
+            "clip": [
+                "89:93",
+                1
+            ],
+            "vae": [
+                "89:10",
+                0
+            ],
+            "image1": [
+                "89:88",
+                0
+            ]
+        },
+        "class_type": "TextEncodeQwenImageEditPlus",
+        "_meta": {
+            "title": "TextEncodeQwenImageEditPlus (Positive)"
+        }
+    },
+    "89:75": {
+        "inputs": {
+            "pixels": [
+                "89:88",
+                0
+            ],
+            "vae": [
+                "89:10",
+                0
+            ]
+        },
+        "class_type": "VAEEncode",
+        "_meta": {
+            "title": "VAE Encode"
+        }
+    },
+    "89:88": {
+        "inputs": {
+            "image": [
+                "41",
+                0
+            ]
+        },
+        "class_type": "FluxKontextImageScale",
+        "_meta": {
+            "title": "FluxKontextImageScale"
+        }
+    },
+    "89:65": {
+        "inputs": {
+            "seed": 0,
+            "steps": 8,
+            "cfg": 1,
+            "sampler_name": "euler",
+            "scheduler": "simple",
+            "denoise": 1,
+            "model": [
+                "89:64",
+                0
+            ],
+            "positive": [
+                "89:70",
+                0
+            ],
+            "negative": [
+                "89:71",
+                0
+            ],
+            "latent_image": [
+                "89:75",
+                0
+            ]
+        },
+        "class_type": "KSampler",
+        "_meta": {
+            "title": "KSampler"
+        }
+    },
+    "60": {
+        "inputs": {
+            "filename_prefix": "ComfyUI",
+            "images": [
+                "89:8",
+                0
+            ]
+        },
+        "class_type": "SaveImage",
+        "_meta": {
+            "title": "Save Image"
+        }
+    },
+    "89:74": {
+        "inputs": {
+            "lora_name": "QWEN\\Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+            "strength_model": 1,
+            "model": [
+                "89:93",
+                0
+            ]
+        },
+        "class_type": "LoraLoaderModelOnly",
+        "_meta": {
+            "title": "LoraLoaderModelOnly"
+        }
+    },
+    "89:89": {
+        "inputs": {
+            "gguf_name": "qwen-image-edit-2511-Q6_K.gguf"
+        },
+        "class_type": "LoaderGGUF",
+        "_meta": {
+            "title": "GGUF Loader"
+        }
+    },
+    "89:61": {
+        "inputs": {
+            "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+            "type": "qwen_image",
+            "device": "default"
+        },
+        "class_type": "CLIPLoader",
+        "_meta": {
+            "title": "Load CLIP"
+        }
+    },
+    "89:93": {
+        "inputs": {
+            "PowerLoraLoaderHeaderWidget": {
+                "type": "PowerLoraLoaderHeaderWidget"
+            },
+            "lora_1": {
+                "on": true,
+                "lora": "QWEN\\2511\\2511 - MultipleAngles.safetensors",
+                "strength": 1
+            },
+            "➕ Add Lora": "",
+            "model": [
+                "89:89",
+                0
+            ],
+            "clip": [
+                "89:61",
+                0
+            ]
+        },
+        "class_type": "Power Lora Loader (rgthree)",
+        "_meta": {
+            "title": "Power Lora Loader (rgthree)"
+        }
+    }
+};
+
 // --- WORKFLOW LIST ---
 
 export const workflows = [
@@ -132,9 +423,9 @@ export const workflows = [
         description: "Turn any image into a detailed black and white coloring book page with clean outlines.",
         triggerWords: ["Turn into a black and white coloring book page"],
         tips: [
-            "Works amazingly with characters and complex scenery.",
-            "Use it to create personalized coloring pages for children or relaxation.",
-            "Simple backgrounds in the source image result in cleaner outlines."
+            "Standard: 'Turn the [subject] into a black and white coloring book page with a plain white background.'",
+            "Cartoon: 'Turn this [subject] doing [action] into a cartoon coloring book... thick lines... playful style.'",
+            "Worksheet: 'Turn [subject] into a black and white coloring book page. Medium-thick outlines... centered playful font.'"
         ],
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '78', field: 'image' } },
@@ -142,6 +433,30 @@ export const workflows = [
             { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '433:3', field: 'seed' } }
         ],
         apiTemplate: anything2ColoringBookTemplate
+    },
+    {
+        id: 'qwen-camera',
+        name: 'QWEN Camera Angle',
+        category: 'Experiments',
+        tags: ['camera', '3d', 'crop'],
+        description: "Change the camera perspective of any subject with visual cropping and 3D angle control.",
+        triggerWords: [", turn into realistic style"],
+        tips: [
+            "Use the Crop tool to focus the attention on the subject.",
+            "Visual angle selector: Left-Right for rotation, Up-Down for vertical tilt.",
+            "Higher zoom values focus more tightly on the selected area."
+        ],
+        inputs: [
+            { id: 'input_image', type: 'image', label: 'Source Image', target: { nodeId: '41', field: 'image' } },
+            {
+                id: 'camera_angle',
+                type: 'camera_angle',
+                label: 'Camera Orientation',
+                target: { nodeId: '93', fields: ['horizontal_angle', 'vertical_angle', 'zoom'] }
+            },
+            { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '89:65', field: 'seed' } }
+        ],
+        apiTemplate: cameraAngleTemplate
     },
     {
         id: 'anything2comic',

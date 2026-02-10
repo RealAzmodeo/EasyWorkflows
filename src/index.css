@@ -231,16 +231,17 @@ textarea:focus {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100% !important;
+    width: 280px !important;
     height: 100%;
-    transform: translateY(-100%);
-    box-shadow: none;
+    transform: translateX(-100%);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2);
     z-index: 2000;
-    padding-top: 4rem;
+    padding-top: 1rem;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .sidebar.open {
-    transform: translateY(0);
+    transform: translateX(0);
   }
 
   .main-content {
@@ -257,16 +258,22 @@ textarea:focus {
     left: 0;
     right: 0;
     height: 3.5rem;
-    padding: 0 1rem;
+    padding: 0 0.5rem;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     z-index: 1100;
+    backdrop-filter: blur(10px);
+    background: rgba(var(--bg), 0.8);
   }
 
-  /* Force single column layouts */
-  .main-content>div>div {
+  /* Force single column layouts for main containers only */
+  .main-creation-grid {
     grid-template-columns: 1fr !important;
-    gap: 2rem !important;
+    gap: 1.5rem !important;
+  }
+
+  .one-page-layout {
+    gap: 1rem;
   }
 
   /* Make sidebar items larger and more touch-friendly */
@@ -293,6 +300,13 @@ textarea:focus {
   /* Hide redundant page headers in mobile vertical stack */
   .mobile-hide {
     display: none !important;
+  }
+
+  .brand-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    margin: 0;
   }
 
   /* Mobile Labels */
@@ -2117,4 +2131,109 @@ textarea:focus {
 .nav-thumb-box:hover {
   transform: translateY(-2px);
   border-color: rgba(var(--primary-rgb), 0.5);
+}
+
+/* --- Fixes for History Delete Button & Image Fit --- */
+
+.history-thumb-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 6px;
+}
+
+.delete-btn-floating {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff4757;
+  color: white;
+  border: 2px solid var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.delete-btn-floating:hover {
+  transform: scale(1.1);
+  background: #ff6b81;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+  /* Force contain */
+  display: block;
+}
+
+.comparison-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* --- Fixes for History Delete Button & Image Fit --- */
+
+.history-thumb-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 6px;
+}
+
+.delete-btn-floating {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff4757;
+  color: white;
+  border: 2px solid var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.delete-btn-floating:hover {
+  transform: scale(1.1);
+  background: #ff6b81;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.comparison-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
 }
