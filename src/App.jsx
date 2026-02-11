@@ -114,6 +114,7 @@ function App() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(() => localStorage.getItem('selectedWorkflowId') || 'tryon');
   const [currentImage, setCurrentImage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isMediaReady, setIsMediaReady] = useState(true);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
   const [history, setHistory] = useState(() => loadHistoryFromLocalStorage('galleryHistory')); // Store all generated images
@@ -187,6 +188,29 @@ function App() {
     const handleStatus = (data) => {
       // General status is fine, but we only update our UI status if it's relevant
       if (data.status) setStatus(data.status);
+
+      // FALLBACK UNLOCK: If we are processing but the server says the queue is empty, 
+      // something might have gone wrong or finished without us seeing the final node.
+      if (processingRef.current && data.status && data.status.exec_info.queue_remaining === 0) {
+        console.debug('[UnlockFallback] Queue is empty but UI was still processing. Unlocking.');
+        handleJobFinished();
+      }
+    };
+
+    const handleJobFinished = () => {
+      setIsProcessing(false);
+      processingRef.current = false;
+      setProgress(100);
+      setTimeout(() => setProgress(0), 1000);
+
+      localStorage.removeItem('activePromptId');
+      setActivePromptId(null);
+      setLogs(prev => [...prev, 'Generation Complete']);
+
+      // Check for Easy Flow suggestions
+      if (activeWorkflow && activeWorkflow.easyFlows) {
+        setSuggestion(activeWorkflow.easyFlows[0]);
+      }
     };
 
     const handleProgress = (data) => {
@@ -211,9 +235,17 @@ function App() {
       // 1. ALWAYS update the preview if we got any result (could be intermediate)
       if (resultItems && resultItems.length > 0) {
         const item = resultItems[0];
-        const isVideo = !!videos;
+        // Check both 'gifs' key and filename extension
+        const isVideo = !!videos ||
+          (item.filename && (
+            item.filename.toLowerCase().endsWith('.mp4') ||
+            item.filename.toLowerCase().endsWith('.webm') ||
+            item.filename.toLowerCase().endsWith('.gif')
+          ));
+
         const url = `/view?filename=${item.filename}&subfolder=${item.subfolder}&type=${item.type}`;
 
+        setIsMediaReady(false); // Mark as not ready until loaded in browser
         setCurrentImage(url);
         setLogs(prev => [...prev.slice(-4), isVideo ? 'Video Received' : 'Image Received']);
 
@@ -226,14 +258,14 @@ function App() {
 
       // 2. DECIDE when to unlock the UI (mark job as complete)
       let shouldUnlock = false;
+      const expectedNode = activeWorkflow?.outputNodeId;
 
-      // Special handling for Camera Workflow to avoid premature unlock on Node 93 (Camera)
-      if (selectedWorkflowId === 'qwen-camera') {
-        // Only unlock on the final PreviewImage node (ID '96')
-        if (data.node === '96') {
+      if (expectedNode) {
+        // Use String() to avoid type mismatch (ComfyUI sends numbers sometimes)
+        if (data.node && String(data.node) === String(expectedNode)) {
           shouldUnlock = true;
         } else {
-          console.log(`[CameraWorkflow] Ignored intermediate execution from node ${data.node}`);
+          console.debug(`[UnlockCheck] Waiting for node ${expectedNode}, current node ${data.node}`);
         }
       } else {
         // Default Strict Behavior: Only unlock if we got images or videos
@@ -243,19 +275,7 @@ function App() {
       }
 
       if (shouldUnlock) {
-        setIsProcessing(false);
-        processingRef.current = false;
-        setProgress(100);
-        setTimeout(() => setProgress(0), 1000);
-
-        localStorage.removeItem('activePromptId');
-        setActivePromptId(null);
-        setLogs(prev => [...prev, 'Generation Complete']);
-
-        // Check for Easy Flow suggestions
-        if (activeWorkflow && activeWorkflow.easyFlows) {
-          setSuggestion(activeWorkflow.easyFlows[0]);
-        }
+        handleJobFinished();
       }
     };
 
@@ -271,6 +291,11 @@ function App() {
     comfy.on('progress', handleProgress);
     comfy.on('executed', handleExecuted);
     comfy.on('execution_start', handleExecutionStart);
+    comfy.on('execution_success', (data) => {
+      if (!activePromptId || data.prompt_id !== activePromptId) return;
+      console.debug('[UnlockSuccess] execution_success event received. Unlocking.');
+      handleJobFinished();
+    });
 
     // Also log execution errors
     comfy.on('execution_error', (data) => {
@@ -651,6 +676,8 @@ function App() {
               onFileChange={handleValueChange}
               onSubmit={handleWorkflowSubmit}
               isProcessing={isProcessing}
+              isMediaReady={isMediaReady}
+              onMediaReady={() => setIsMediaReady(true)}
               progress={progress}
               dragActive={dragActive}
               onDrag={handleDrag}

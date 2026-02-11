@@ -24,7 +24,9 @@ export const WorkflowForm = ({
     setCurrentImage,
     easyMode,
     suggestion,
-    onApplySuggestion
+    onApplySuggestion,
+    onMediaReady,
+    isMediaReady
 }) => {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
@@ -82,11 +84,14 @@ export const WorkflowForm = ({
     const hasMultipleImages = imageInputs.length >= 2;
 
     // Detect if the current output is a video
+    // Detect if the current output is a video - Robust check
     const currentItem = history?.find(item => item.url === currentImage);
-    const isOutputVideo = currentItem?.isVideo ||
+    const isOutputVideo = (currentItem?.isVideo) ||
+        (workflow.id && (workflow.id.includes('video') || workflow.id === 'wan22')) ||
         (typeof currentImage === 'string' && (
             currentImage.toLowerCase().includes('.mp4') ||
             currentImage.toLowerCase().includes('.webm') ||
+            currentImage.toLowerCase().includes('.gif') ||
             currentImage.includes('format=video')
         ));
 
@@ -99,51 +104,55 @@ export const WorkflowForm = ({
                 <div className="output-column">
                     <div className="output-frame">
                         {currentImage ? (
-                            <div className="output-media-container">
-                                {originalInputImage && workflow.id !== 'extractproduct' && !isOutputVideo ? (
-                                    <ImageComparisonSlider
-                                        beforeImage={originalInputImage}
-                                        afterImage={currentImage}
-                                        className="one-page-preview"
-                                    />
-                                ) : (
-                                    <div className="one-page-preview-container clickable" onClick={() => onImageClick({ url: currentImage, type: 'output' })}>
-                                        <FilePreview
-                                            file={currentImage}
+                            <div className="preview-and-loading-wrapper" style={{ position: 'relative', width: '100%', height: '100%' }}>
+                                {/* The Media itself - must be rendered to trigger onReady */}
+                                <div className={`output-media-container ${!isMediaReady ? 'media-hidden' : ''}`}>
+                                    {originalInputImage && workflow.id !== 'extractproduct' && !isOutputVideo ? (
+                                        <ImageComparisonSlider
+                                            beforeImage={originalInputImage}
+                                            afterImage={currentImage}
                                             className="one-page-preview"
+                                            onReady={onMediaReady}
                                         />
+                                    ) : (
+                                        <div className="one-page-preview-container clickable" onClick={() => onImageClick({ url: currentImage, type: 'output' })}>
+                                            <FilePreview
+                                                file={currentImage}
+                                                className="one-page-preview"
+                                                onReady={onMediaReady}
+                                            />
+                                            {/* Premium Hover Overlay */}
+                                            <div className="preview-hover-overlay">
+                                                <div className="overlay-icon-circle">
+                                                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" /></svg>
+                                                </div>
+                                                <span className="overlay-text">EXPAND VIEW</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Persistent Loading Overlay - shows over the media until ready */}
+                                {(isProcessing || !isMediaReady) && (
+                                    <div className="output-placeholder overlay-loading">
+                                        <div className="loading-state">
+                                            <div className="premium-spinner"></div>
+                                            <div className="loading-bar-container">
+                                                <div className="loading-bar-fill" style={{ width: `${progress}%` }}></div>
+                                            </div>
+                                            <span className="loading-text">
+                                                {isProcessing ? `CREATING... ${progress}%` : (isOutputVideo ? 'FINALIZING VIDEO...' : 'PREPARING PREVIEW...')}
+                                            </span>
+                                        </div>
                                     </div>
                                 )}
-                                <div className="output-frame-actions">
-                                    <button
-                                        className="frame-action-btn"
-                                        onClick={() => onImageClick({ url: currentImage, type: 'output' })}
-                                        title="Open Large View"
-                                    >
-                                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" /></svg>
-                                    </button>
-                                </div>
                             </div>
                         ) : (
                             <div className="output-placeholder">
-                                {isProcessing ? (
-                                    <div className="loading-state">
-                                        <div className="premium-spinner"></div>
-                                        <div className="loading-bar-container">
-                                            <div className="loading-bar-fill" style={{ width: `${progress}%` }}></div>
-                                        </div>
-                                        <span className="loading-text">CREATING... {progress}%</span>
-                                    </div>
-                                ) : (
-                                    <div className="output-info-content">
-                                        <span className="placeholder-text">READY TO CREATE</span>
-                                        {description && (
-                                            <div className="output-workflow-desc">
-                                                {description}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                <div className="output-info-content">
+                                    <span className="placeholder-text">READY TO CREATE</span>
+                                    <p className="placeholder-subtext">Select your settings and click Generate</p>
+                                </div>
                             </div>
                         )}
 
@@ -377,13 +386,13 @@ export const WorkflowForm = ({
 
                         {/* f. Generation Button */}
                         <button
-                            className={`main-generate-btn ${isProcessing ? 'loading' : ''}`}
+                            className={`main-generate-btn ${isProcessing || !isMediaReady ? 'loading' : ''}`}
                             onClick={onSubmit}
-                            disabled={isProcessing}
+                            disabled={isProcessing || !isMediaReady}
                         >
                             <span className="btn-bg" style={{ width: `${progress}%` }}></span>
                             <span className="btn-label">
-                                {isProcessing ? `GENERATING... ${progress}%` : 'GENERATE IMAGE'}
+                                {isProcessing ? `GENERATING... ${progress}%` : (!isMediaReady ? (isOutputVideo ? 'LOADING VIDEO...' : 'LOADING IMAGE...') : 'GENERATE IMAGE')}
                             </span>
                         </button>
                         {/* Prompt Edit Modal */}

@@ -29,22 +29,6 @@
       "title": "KSampler"
     }
   },
-  "6": {
-    "inputs": {
-      "text": [
-        "65",
-        0
-      ],
-      "clip": [
-        "63",
-        1
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Positive Prompt)"
-    }
-  },
   "7": {
     "inputs": {
       "text": "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards\", explosion, artifacts, pupils",
@@ -259,6 +243,22 @@
     "class_type": "ShowText|pysssss",
     "_meta": {
       "title": "Automatic Prompt"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": [
+        "65",
+        0
+      ],
+      "clip": [
+        "63",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
     }
   },
   "68": {

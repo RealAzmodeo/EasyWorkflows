@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
  * Safely handles URL.createObjectURL and URL.revokeObjectURL
  * to prevent memory leaks in the browser.
  */
-export const FilePreview = ({ file, alt = "Preview", className = "", style = {} }) => {
+export const FilePreview = ({ file, alt = "Preview", className = "", style = {}, onReady = () => { } }) => {
     const [objectUrl, setObjectUrl] = useState(null);
 
     useEffect(() => {
@@ -51,6 +51,7 @@ export const FilePreview = ({ file, alt = "Preview", className = "", style = {} 
                 loop
                 playsInline
                 controls
+                onLoadedData={onReady}
             />
         );
     }
@@ -61,6 +62,7 @@ export const FilePreview = ({ file, alt = "Preview", className = "", style = {} 
             alt={alt}
             className={className}
             style={style}
+            onLoad={onReady}
         />
     );
 };

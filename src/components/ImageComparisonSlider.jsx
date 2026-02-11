@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export const ImageComparisonSlider = ({ beforeImage, afterImage, className = "" }) => {
+export const ImageComparisonSlider = ({ beforeImage, afterImage, className = "", onReady = () => { } }) => {
     const [sliderPosition, setSliderPosition] = useState(50);
     const containerRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -55,6 +55,7 @@ export const ImageComparisonSlider = ({ beforeImage, afterImage, className = "" 
                 className="comparison-img after-img"
                 draggable="false"
                 style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }}
+                onLoad={onReady}
             />
 
             {/* Before Image (Clipped) */}
@@ -86,6 +87,7 @@ export const ImageComparisonSlider = ({ beforeImage, afterImage, className = "" 
                         objectFit: 'contain',
                         display: 'block'
                     }}
+                    onLoad={onReady}
                 />
             </div>
 

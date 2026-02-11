@@ -2769,3 +2769,77 @@ input:checked+.slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
+/* --- PREVIEW HOVER OVERLAY --- */
+.one-page-preview-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.one-page-preview-container:hover .preview-hover-overlay {
+  opacity: 1;
+}
+
+.overlay-icon-circle {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  transform: translateY(20px);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.one-page-preview-container:hover .overlay-icon-circle {
+  transform: translateY(0);
+}
+
+.overlay-icon-circle svg {
+  width: 24px;
+  height: 24px;
+  fill: white;
+}
+
+.overlay-text {
+  color: white;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  transform: translateY(20px);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.05s;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.one-page-preview-container:hover .overlay-text {
+  transform: translateY(0);
+}
+
+/* --- OUTPUT OVERLAY LOADING --- */
+.preview-and-loading-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.overlay-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--bg-content, #0a0a0a); border-radius: var(--radius-lg); }
+.media-hidden { opacity: 0; pointer-events: none; }
+.output-media-container { width: 100%; height: 100%; transition: opacity 0.4s ease; }

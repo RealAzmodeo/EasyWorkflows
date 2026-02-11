@@ -102,6 +102,7 @@ export const workflows = [
             "Visual angle selector: Left-Right for rotation, Up-Down for vertical tilt.",
             "Higher zoom values focus more tightly on the selected area."
         ],
+        outputNodeId: '96',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Source Image', easyLabel: 'Your Original Photo', target: { nodeId: '41', field: 'image' } },
             {
@@ -347,6 +348,7 @@ export const workflows = [
             "Keep descriptions simple for better motion quality.",
             "Use the PingPong toggle for a seamless loop effect."
         ],
+        outputNodeId: '68',
         inputs: [
             { id: 'input_image', type: 'image', label: 'Character Image', easyLabel: 'Character Photo', target: { nodeId: '56', field: 'image' } },
             {
