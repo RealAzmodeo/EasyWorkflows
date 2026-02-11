@@ -33,15 +33,30 @@ export const Gallery = ({ images, onDragStart, onDelete, onDownload, onShare, on
                         border: '1px solid var(--border)',
                         background: 'var(--bg-sidebar)',
                     }}>
-                        <img
-                            src={img.url}
-                            alt={`Generated ${index}`}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                            }}
-                        />
+                        {img.isVideo ? (
+                            <video
+                                src={img.url}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                }}
+                                muted
+                                loop
+                                autoPlay
+                                playsInline
+                            />
+                        ) : (
+                            <img
+                                src={img.url}
+                                alt={`Generated ${index}`}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                }}
+                            />
+                        )}
                     </div>
 
                     {/* Management Overlays */}

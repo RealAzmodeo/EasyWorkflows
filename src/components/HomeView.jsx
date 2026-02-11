@@ -1,9 +1,12 @@
 import React from 'react';
 import { Card, Button } from './ui/components';
 
-export const HomeView = ({ workflows, onSelectWorkflow, status }) => {
+export const HomeView = ({ workflows, onSelectWorkflow, status, easyMode }) => {
+    // Filter workflows for Easy Mode
+    const displayWorkflows = easyMode ? workflows.filter(wf => wf.easyMode) : workflows;
+
     // Group workflows by category
-    const categories = workflows.reduce((acc, wf) => {
+    const categories = displayWorkflows.reduce((acc, wf) => {
         const cat = wf.category || 'Other';
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(wf);
@@ -42,8 +45,11 @@ export const HomeView = ({ workflows, onSelectWorkflow, status }) => {
                                     {category === 'Utility' && <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.5 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" /></svg>}
                                     {category === 'Experiments' && <svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM5 13.5h4V22H5z" /></svg>}
                                     {category === 'Generation' && <svg viewBox="0 0 24 24"><path d="M11 15h2v2h-2v-2zm0-8h2v6h-2V7zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" /></svg>}
+                                    {category === 'Generation' && <svg viewBox="0 0 24 24"><path d="M11 15h2v2h-2v-2zm0-8h2v6h-2V7zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" /></svg>}
                                 </div>
-                                <span className="mini-card-name">{wf.name}</span>
+                                <span className="mini-card-name">
+                                    {easyMode ? (wf.easyAction || wf.name) : wf.name}
+                                </span>
                             </div>
                         ))}
                     </div>

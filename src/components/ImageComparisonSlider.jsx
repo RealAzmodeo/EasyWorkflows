@@ -54,7 +54,7 @@ export const ImageComparisonSlider = ({ beforeImage, afterImage, className = "" 
                 alt="After"
                 className="comparison-img after-img"
                 draggable="false"
-                style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }}
+                style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }}
             />
 
             {/* Before Image (Clipped) */}
@@ -82,7 +82,7 @@ export const ImageComparisonSlider = ({ beforeImage, afterImage, className = "" 
                         top: 0,
                         left: 0,
                         width: '100%',
-                        height: '100%',
+                        height: 'auto',
                         objectFit: 'contain',
                         display: 'block'
                     }}
@@ -112,9 +112,6 @@ export const ImageComparisonSlider = ({ beforeImage, afterImage, className = "" 
                 </div>
             </div>
 
-            {/* Labels */}
-            <div className="comparison-label before" style={{ left: '10px' }}>ORIGINAL</div>
-            <div className="comparison-label after" style={{ right: '10px' }}>RESULT</div>
         </div>
     );
 };

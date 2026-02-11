@@ -21,7 +21,10 @@ export const WorkflowForm = ({
     history = [],
     originalInputImage,
     currentImage,
-    setCurrentImage
+    setCurrentImage,
+    easyMode,
+    suggestion,
+    onApplySuggestion
 }) => {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
@@ -78,10 +81,18 @@ export const WorkflowForm = ({
     const otherInputs = workflow.inputs.filter(i => i.type !== 'image');
     const hasMultipleImages = imageInputs.length >= 2;
 
+    // Detect if the current output is a video
+    const currentItem = history?.find(item => item.url === currentImage);
+    const isOutputVideo = currentItem?.isVideo ||
+        (typeof currentImage === 'string' && (
+            currentImage.toLowerCase().includes('.mp4') ||
+            currentImage.toLowerCase().includes('.webm') ||
+            currentImage.includes('format=video')
+        ));
+
     return (
         <div className="one-page-layout">
             {/* a. Header bar is handled in App.jsx */}
-
 
             <div className="main-creation-grid">
                 {/* c. Output Section (Frame) */}
@@ -89,19 +100,19 @@ export const WorkflowForm = ({
                     <div className="output-frame">
                         {currentImage ? (
                             <div className="output-media-container">
-                                {originalInputImage && workflow.id !== 'extractproduct' ? (
+                                {originalInputImage && workflow.id !== 'extractproduct' && !isOutputVideo ? (
                                     <ImageComparisonSlider
                                         beforeImage={originalInputImage}
                                         afterImage={currentImage}
                                         className="one-page-preview"
                                     />
                                 ) : (
-                                    <img
-                                        src={currentImage}
-                                        alt="Generated"
-                                        className="one-page-preview clickable"
-                                        onClick={() => onImageClick({ url: currentImage, type: 'output' })}
-                                    />
+                                    <div className="one-page-preview-container clickable" onClick={() => onImageClick({ url: currentImage, type: 'output' })}>
+                                        <FilePreview
+                                            file={currentImage}
+                                            className="one-page-preview"
+                                        />
+                                    </div>
                                 )}
                                 <div className="output-frame-actions">
                                     <button
@@ -135,12 +146,28 @@ export const WorkflowForm = ({
                                 )}
                             </div>
                         )}
+
+                        {/* Suggestion Banner */}
+                        {suggestion && currentImage && !isProcessing && (
+                            <div className="suggestion-banner fade-in">
+                                <div className="suggestion-content">
+                                    <div className="suggestion-icon">✨</div>
+                                    <div className="suggestion-text">
+                                        <div className="suggestion-title">Perfect Result!</div>
+                                        <div className="suggestion-desc">{suggestion.label}</div>
+                                    </div>
+                                </div>
+                                <button
+                                    className="suggestion-action-btn"
+                                    onClick={() => onApplySuggestion(suggestion)}
+                                >
+                                    TRY IT NOW
+                                    <svg viewBox="0 0 24 24" width="16" height="16"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" fill="currentColor" /></svg>
+                                </button>
+                            </div>
+                        )}
                     </div>
-
-
                 </div>
-
-                {/* History Navigator Removed from here - Access via Header/Menu */}
 
                 {/* d. Input Section */}
                 <div className="input-column">
@@ -187,7 +214,9 @@ export const WorkflowForm = ({
                                             ) : (
                                                 <div className="slot-empty">
                                                     <span className="plus">+</span>
-                                                    <span className="label">{imageInputs[0].label}</span>
+                                                    <span className="label">
+                                                        {easyMode ? (imageInputs[0].easyLabel || imageInputs[0].label) : imageInputs[0].label}
+                                                    </span>
                                                 </div>
                                             )}
                                             <input
@@ -258,7 +287,9 @@ export const WorkflowForm = ({
                                             ) : (
                                                 <div className="slot-empty">
                                                     <span className="plus">+</span>
-                                                    <span className="label">{imageInputs[1].label}</span>
+                                                    <span className="label">
+                                                        {easyMode ? (imageInputs[1].easyLabel || imageInputs[1].label) : imageInputs[1].label}
+                                                    </span>
                                                 </div>
                                             )}
                                             <input
@@ -283,29 +314,30 @@ export const WorkflowForm = ({
                                 {/* Fallback for remaining images if any (rare in these workflows) */}
                                 {imageInputs.slice(2).map(input => (
                                     <div key={input.id} className="image-input-slot">
-                                        {/* Reuse your existing logic here if needed, but primary focus is the main two */}
+                                        {/* Fallback Slot UI */}
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* e. Prompt Section */}
-                        <div className="prompt-section">
-                            <h3 className="section-subtitle">CREATIVE PROMPT</h3>
-                            {otherInputs.filter(i => i.id === 'prompt').map(input => (
-                                <div key={input.id} className="prompt-container" onClick={() => setIsPromptModalOpen(true)}>
-                                    <div className="prompt-display">
-                                        {values[input.id] || "Enter your instructions here..."}
+                        {/* e. Prompt Section (Hidden or Simplified in Easy Mode) */}
+                        {(!easyMode || (easyMode && otherInputs.some(i => i.id === 'prompt' && i.easyLabel))) && (
+                            <div className="prompt-section">
+                                <h3 className="section-subtitle">
+                                    {easyMode ? "INSTRUCTIONS" : "CREATIVE PROMPT"}
+                                </h3>
+                                {otherInputs.filter(i => i.id === 'prompt' && (!easyMode || i.easyLabel)).map(input => (
+                                    <div key={input.id} className="prompt-container" onClick={() => setIsPromptModalOpen(true)}>
+                                        <div className="prompt-display">
+                                            {values[input.id] || (easyMode ? input.easyLabel : "Enter your instructions here...")}
+                                        </div>
+                                        <button className="prompt-edit-icon">
+                                            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+                                        </button>
                                     </div>
-                                    <button className="prompt-edit-icon">
-                                        <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
-                                    </button>
-                                </div>
-                            ))}
-
-
-                            {/* Pro Tips / Trigger Words moved to Modal */}
-                        </div>
+                                ))}
+                            </div>
+                        )}
 
                         {/* g. Specialized Experimental Inputs (Crop/Camera) */}
                         <div className="specialized-inputs">
@@ -319,6 +351,26 @@ export const WorkflowForm = ({
                                             onChange('camera_angle', { ...current, ...newVals });
                                         }}
                                     />
+                                </div>
+                            )}
+
+                            {/* Boolean Controls (Toggles) */}
+                            {otherInputs.filter(i => i.type === 'boolean').length > 0 && (
+                                <div className="experimental-control-group">
+                                    <h3 className="section-subtitle">SETTINGS</h3>
+                                    {otherInputs.filter(i => i.type === 'boolean').map(input => (
+                                        <div key={input.id} className="toggle-input-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{input.label.toUpperCase()}</span>
+                                            <label className="switch">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={values[input.id] !== undefined ? values[input.id] : input.defaultValue}
+                                                    onChange={(e) => onChange(input.id, e.target.checked)}
+                                                />
+                                                <span className="slider round"></span>
+                                            </label>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -372,7 +424,6 @@ export const WorkflowForm = ({
                                                             className="tip-tag"
                                                             onClick={() => {
                                                                 const current = values['prompt'] || '';
-                                                                // Append if not already there
                                                                 if (!current.includes(word)) {
                                                                     const newVal = current ? `${current}, ${word}` : word;
                                                                     onChange('prompt', newVal);
@@ -403,64 +454,61 @@ export const WorkflowForm = ({
                                     </div>
                                 </div>
                             </div>
-                        )
-                        }
+                        )}
 
                         {/* Image Source Selector Modal */}
-                        {
-                            isSelectorOpen && (
-                                <div className="modal-overlay" onClick={() => setIsSelectorOpen(false)}>
-                                    <div className="source-modal" onClick={e => e.stopPropagation()}>
-                                        <div className="modal-header">
-                                            <h3>{showAppGallery ? 'Select from App History' : 'Add Image'}</h3>
-                                            <button onClick={() => setIsSelectorOpen(false)} className="modal-close-btn">✕</button>
-                                        </div>
-
-                                        {!showAppGallery ? (
-                                            <div className="source-options">
-                                                <button className="source-opt-btn" onClick={() => handleSourceSelect('app')}>
-                                                    <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" /></svg>
-                                                    <div>
-                                                        <div style={{ fontWeight: 600 }}>App Gallery</div>
-                                                        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Re-use from this session</div>
-                                                    </div>
-                                                </button>
-                                                <button className="source-opt-btn" onClick={() => handleSourceSelect('gallery')}>
-                                                    <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" /></svg>
-                                                    <div>
-                                                        <div style={{ fontWeight: 600 }}>Phone Gallery</div>
-                                                        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Pick a file from your device</div>
-                                                    </div>
-                                                </button>
-                                                <button className="source-opt-btn" onClick={() => handleSourceSelect('camera')}>
-                                                    <svg viewBox="0 0 24 24"><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" /></svg>
-                                                    <div>
-                                                        <div style={{ fontWeight: 600 }}>Camera</div>
-                                                        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Take a photo now</div>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="app-gallery-picker">
-                                                {history.length > 0 ? history.map((img, i) => (
-                                                    <img
-                                                        key={i}
-                                                        src={img.url}
-                                                        className="picker-img"
-                                                        onClick={() => selectFromAppGallery(img)}
-                                                        onDoubleClick={() => onImageClick({ url: img.url, type: 'output' })}
-                                                    />
-                                                )) : (
-                                                    <div style={{ gridColumn: 'span 3', padding: '2rem', textAlign: 'center', opacity: 0.5 }}>
-                                                        No images in history yet.
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                        {isSelectorOpen && (
+                            <div className="modal-overlay" onClick={() => setIsSelectorOpen(false)}>
+                                <div className="source-modal" onClick={e => e.stopPropagation()}>
+                                    <div className="modal-header">
+                                        <h3>{showAppGallery ? 'Select from App History' : 'Add Image'}</h3>
+                                        <button onClick={() => setIsSelectorOpen(false)} className="modal-close-btn">✕</button>
                                     </div>
+
+                                    {!showAppGallery ? (
+                                        <div className="source-options">
+                                            <button className="source-opt-btn" onClick={() => handleSourceSelect('app')}>
+                                                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" /></svg>
+                                                <div>
+                                                    <div style={{ fontWeight: 600 }}>App Gallery</div>
+                                                    <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Re-use from this session</div>
+                                                </div>
+                                            </button>
+                                            <button className="source-opt-btn" onClick={() => handleSourceSelect('gallery')}>
+                                                <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" /></svg>
+                                                <div>
+                                                    <div style={{ fontWeight: 600 }}>Phone Gallery</div>
+                                                    <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Pick a file from your device</div>
+                                                </div>
+                                            </button>
+                                            <button className="source-opt-btn" onClick={() => handleSourceSelect('camera')}>
+                                                <svg viewBox="0 0 24 24"><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" /></svg>
+                                                <div>
+                                                    <div style={{ fontWeight: 600 }}>Camera</div>
+                                                    <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Take a photo now</div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="app-gallery-picker">
+                                            {history.length > 0 ? history.map((img, i) => (
+                                                <img
+                                                    key={i}
+                                                    src={img.url}
+                                                    className="picker-img"
+                                                    onClick={() => selectFromAppGallery(img)}
+                                                    onDoubleClick={() => onImageClick({ url: img.url, type: 'output' })}
+                                                />
+                                            )) : (
+                                                <div style={{ gridColumn: 'span 3', padding: '2rem', textAlign: 'center', opacity: 0.5 }}>
+                                                    No images in history yet.
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
-                            )
-                        }
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

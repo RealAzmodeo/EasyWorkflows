@@ -35,6 +35,26 @@ export const FilePreview = ({ file, alt = "Preview", className = "", style = {} 
 
     if (!objectUrl) return null;
 
+    // Detect if the file is a video based on extension or mime type
+    const isVideo = (typeof file === 'string' && (file.toLowerCase().includes('.mp4') || file.toLowerCase().includes('.webm') || file.includes('format=video'))) ||
+        (file instanceof File && file.type.startsWith('video/')) ||
+        (file?.filename?.toLowerCase().includes('.mp4') || file?.filename?.toLowerCase().includes('.webm'));
+
+    if (isVideo) {
+        return (
+            <video
+                src={objectUrl}
+                className={className}
+                style={{ ...style, maxWidth: '100%', height: 'auto' }}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+            />
+        );
+    }
+
     return (
         <img
             src={objectUrl}
