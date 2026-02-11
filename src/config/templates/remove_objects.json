@@ -1,0 +1,205 @@
+{
+    "9": {
+        "inputs": {
+            "filename_prefix": "Qwen_Edit_2511",
+            "images": [
+                "89:8",
+                0
+            ]
+        },
+        "class_type": "SaveImage"
+    },
+    "41": {
+        "inputs": {
+            "image": "example.png"
+        },
+        "class_type": "LoadImage"
+    },
+    "89:67": {
+        "inputs": {
+            "shift": 3.1,
+            "model": [
+                "89:91",
+                0
+            ]
+        },
+        "class_type": "ModelSamplingAuraFlow"
+    },
+    "89:10": {
+        "inputs": {
+            "vae_name": "qwen_image_vae.safetensors"
+        },
+        "class_type": "VAELoader"
+    },
+    "89:12": {
+        "inputs": {
+            "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+            "weight_dtype": "default"
+        },
+        "class_type": "UNETLoader"
+    },
+    "89:71": {
+        "inputs": {
+            "reference_latents_method": "index_timestep_zero",
+            "conditioning": [
+                "89:69",
+                0
+            ]
+        },
+        "class_type": "FluxKontextMultiReferenceLatentMethod"
+    },
+    "89:70": {
+        "inputs": {
+            "reference_latents_method": "index_timestep_zero",
+            "conditioning": [
+                "89:68",
+                0
+            ]
+        },
+        "class_type": "FluxKontextMultiReferenceLatentMethod"
+    },
+    "89:64": {
+        "inputs": {
+            "strength": 1,
+            "model": [
+                "89:67",
+                0
+            ]
+        },
+        "class_type": "CFGNorm"
+    },
+    "89:69": {
+        "inputs": {
+            "prompt": "",
+            "clip": [
+                "89:61",
+                0
+            ],
+            "vae": [
+                "89:10",
+                0
+            ],
+            "image1": [
+                "89:88",
+                0
+            ]
+        },
+        "class_type": "TextEncodeQwenImageEditPlus"
+    },
+    "89:8": {
+        "inputs": {
+            "samples": [
+                "89:65",
+                0
+            ],
+            "vae": [
+                "89:10",
+                0
+            ]
+        },
+        "class_type": "VAEDecode"
+    },
+    "89:68": {
+        "inputs": {
+            "prompt": "remove the jacket",
+            "clip": [
+                "89:61",
+                0
+            ],
+            "vae": [
+                "89:10",
+                0
+            ],
+            "image1": [
+                "89:88",
+                0
+            ]
+        },
+        "class_type": "TextEncodeQwenImageEditPlus"
+    },
+    "89:75": {
+        "inputs": {
+            "pixels": [
+                "89:88",
+                0
+            ],
+            "vae": [
+                "89:10",
+                0
+            ]
+        },
+        "class_type": "VAEEncode"
+    },
+    "89:88": {
+        "inputs": {
+            "image": [
+                "41",
+                0
+            ]
+        },
+        "class_type": "FluxKontextImageScale"
+    },
+    "89:61": {
+        "inputs": {
+            "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+            "type": "qwen_image",
+            "device": "default"
+        },
+        "class_type": "CLIPLoader"
+    },
+    "89:92": {
+        "inputs": {
+            "lora_name": "QWEN\\2511\\2511 - RemoveObject.safetensors",
+            "strength_model": 1,
+            "model": [
+                "89:90",
+                0
+            ]
+        },
+        "class_type": "LoraLoaderModelOnly"
+    },
+    "89:65": {
+        "inputs": {
+            "seed": 0,
+            "steps": 8,
+            "cfg": 1,
+            "sampler_name": "euler",
+            "scheduler": "simple",
+            "denoise": 1,
+            "model": [
+                "89:64",
+                0
+            ],
+            "positive": [
+                "89:70",
+                0
+            ],
+            "negative": [
+                "89:71",
+                0
+            ],
+            "latent_image": [
+                "89:75",
+                0
+            ]
+        },
+        "class_type": "KSampler"
+    },
+    "89:90": {
+        "inputs": {
+            "gguf_name": "qwen-image-edit-2511-Q6_K.gguf"
+        },
+        "class_type": "LoaderGGUF"
+    },
+    "89:91": {
+        "inputs": {
+            "lora_name": "QWEN\\Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+            "strength_model": 1,
+            "model": [
+                "89:92",
+                0
+            ]
+        },
+        "class_type": "LoraLoaderModelOnly"
+    }
+}
