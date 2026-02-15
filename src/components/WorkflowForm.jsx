@@ -11,6 +11,7 @@ export const WorkflowForm = ({
     onChange,
     onFileChange,
     onSubmit,
+    onCancel,
     isProcessing,
     progress,
     dragActive,
@@ -385,16 +386,30 @@ export const WorkflowForm = ({
                         </div>
 
                         {/* f. Generation Button */}
-                        <button
-                            className={`main-generate-btn ${isProcessing || !isMediaReady ? 'loading' : ''}`}
-                            onClick={onSubmit}
-                            disabled={isProcessing || !isMediaReady}
-                        >
-                            <span className="btn-bg" style={{ width: `${progress}%` }}></span>
-                            <span className="btn-label">
-                                {isProcessing ? `GENERATING... ${progress}%` : (!isMediaReady ? (isOutputVideo ? 'LOADING VIDEO...' : 'LOADING IMAGE...') : 'GENERATE IMAGE')}
-                            </span>
-                        </button>
+                        {/* f. Generation Button */}
+                        {isProcessing ? (
+                            <button
+                                className="main-generate-btn loading cancel-mode"
+                                onClick={onCancel || (() => { })}
+                                style={{ borderColor: '#ef4444' }}
+                            >
+                                <span className="btn-bg" style={{ width: `${progress}%`, background: '#ef4444' }}></span>
+                                <span className="btn-label">
+                                    CANCEL GENERATION ({progress}%)
+                                </span>
+                            </button>
+                        ) : (
+                            <button
+                                className={`main-generate-btn ${!isMediaReady ? 'loading' : ''}`}
+                                onClick={onSubmit}
+                                disabled={!isMediaReady}
+                            >
+                                <span className="btn-bg" style={{ width: '0%' }}></span>
+                                <span className="btn-label">
+                                    {!isMediaReady ? (isOutputVideo ? 'LOADING VIDEO...' : 'LOADING IMAGE...') : 'GENERATE IMAGE'}
+                                </span>
+                            </button>
+                        )}
                         {/* Prompt Edit Modal */}
                         {isPromptModalOpen && (
                             <div className="modal-overlay" onClick={() => setIsPromptModalOpen(false)}>

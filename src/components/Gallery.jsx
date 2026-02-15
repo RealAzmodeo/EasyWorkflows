@@ -45,6 +45,7 @@ export const Gallery = ({ images, onDragStart, onDelete, onDownload, onShare, on
                                 loop
                                 autoPlay
                                 playsInline
+                                onError={() => onDelete && onDelete(img.filename)}
                             />
                         ) : (
                             <img
@@ -55,6 +56,7 @@ export const Gallery = ({ images, onDragStart, onDelete, onDownload, onShare, on
                                     height: '100%',
                                     objectFit: 'cover'
                                 }}
+                                onError={() => onDelete && onDelete(img.filename)}
                             />
                         )}
                     </div>

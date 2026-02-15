@@ -316,52 +316,122 @@ function App() {
   }, [activePromptId]); // Re-bind if promptId changes
 
   // Function to manually check if a prompt is finished (Polling Fallback)
-  const checkPromptResult = async (promptId) => {
+  // Also validates if a job is "stuck" (not in queue, not in history)
+  const checkPromptStatus = async (promptId) => {
     try {
+      // 1. Check History first (Success)
       const historyRes = await api.current.getHistory(promptId);
       const result = historyRes[promptId];
+
       if (result && result.outputs) {
-        // Format it like a regular 'executed' event data
+        // Job Finished Successfully
         const payload = {
           prompt_id: promptId,
           output: result.outputs[Object.keys(result.outputs)[0]]
         };
-        // Re-use logic
         const images = payload.output.images;
-        if (images && images.length > 0) {
-          const img = images[0];
-          const url = `/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
+        const videos = payload.output.gifs;
+
+        if ((images && images.length > 0) || (videos && videos.length > 0)) {
+          // Reuse existing logic via event simulation or direct call
+          // For simplicity, we just update state directly here like in handleExecuted
+          const resultItems = videos || images;
+          const item = resultItems[0];
+
+          const isVideo = !!videos ||
+            (item.filename && (
+              item.filename.toLowerCase().endsWith('.mp4') ||
+              item.filename.toLowerCase().endsWith('.webm') ||
+              item.filename.toLowerCase().endsWith('.gif')
+            ));
+
+          const url = `/view?filename=${item.filename}&subfolder=${item.subfolder}&type=${item.type}`;
+
           setCurrentImage(url);
           setHistory(prev => {
-            if (prev.length > 0 && prev[0].filename === img.filename) return prev;
-            return [{ url, filename: img.filename, type: img.type, subfolder: img.subfolder }, ...prev];
+            if (prev.length > 0 && prev[0].filename === item.filename) return prev;
+            return [{ url, filename: item.filename, type: item.type, subfolder: item.subfolder, isVideo }, ...prev];
           });
+
+          handleJobFinished();
+          return 'finished';
+        }
+      }
+
+      // 2. Check Queue (Pending/Running)
+      // We need to fetch the whole queue to see if our ID is there
+      const queueRes = await api.current.getQueue();
+      // queueRes has { queue_running: [...], queue_pending: [...] }
+      const isRunning = queueRes.queue_running.some(job => job[1] === promptId);
+      const isPending = queueRes.queue_pending.some(job => job[1] === promptId);
+
+      if (isRunning || isPending) {
+        // Still active, do nothing, keep waiting
+        return 'active';
+      }
+
+      // 3. Not in History, Not in Queue -> STUCK / ZOMBIE
+      console.warn(`[JobCheck] Job ${promptId} not found in Queue or History. Assuming lost/stuck.`);
+      return 'stuck';
+
+    } catch (e) {
+      console.error('Polling/Check error:', e);
+      // Network error? Don't kill it yet.
+      return 'error';
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!activePromptId) return;
+
+    setLogs(prev => [...prev, 'Cancelling...']);
+    try {
+      await api.current.interrupt();
+      // Force cleanup UI
+      setIsProcessing(false);
+      processingRef.current = false;
+      setProgress(0);
+      localStorage.removeItem('activePromptId');
+      setActivePromptId(null);
+      setLogs(prev => [...prev, 'Cancelled by user']);
+    } catch (e) {
+      console.error("Cancel failed", e);
+    }
+  };
+
+  // Auto-recovery and periodic safety check
+  useEffect(() => {
+    let interval;
+
+    const runCheck = async () => {
+      if (activePromptId) {
+        // Only set isProcessing to true if we really think it's active
+        // (It might be initialized as true, but this confirmation helps)
+        setIsProcessing(true);
+
+        const status = await checkPromptStatus(activePromptId);
+
+        if (status === 'stuck') {
+          // Auto-fix stuck state
           setIsProcessing(false);
           processingRef.current = false;
           setProgress(0);
           localStorage.removeItem('activePromptId');
           setActivePromptId(null);
-          return true;
+          setLogs(prev => [...prev, 'Restored previous session state (Job lost)']);
         }
       }
-    } catch (e) {
-      console.error('Polling error:', e);
-    }
-    return false;
-  };
+    };
 
-  // Auto-recovery and periodic safety check
-  useEffect(() => {
-    if (activePromptId) {
-      setIsProcessing(true);
-      checkPromptResult(activePromptId);
-    }
+    // Run once on mount/id-change
+    runCheck();
 
-    const interval = setInterval(() => {
+    // Poll periodically just in case WebSocket misses the end event
+    interval = setInterval(() => {
       if (activePromptId) {
-        checkPromptResult(activePromptId);
+        runCheck();
       }
-    }, 10000); // Check every 10s if something is pending
+    }, 5000); // Check every 5s
 
     return () => clearInterval(interval);
   }, [activePromptId]);
@@ -675,6 +745,7 @@ function App() {
               onChange={handleValueChange}
               onFileChange={handleValueChange}
               onSubmit={handleWorkflowSubmit}
+              onCancel={handleCancel}
               isProcessing={isProcessing}
               isMediaReady={isMediaReady}
               onMediaReady={() => setIsMediaReady(true)}

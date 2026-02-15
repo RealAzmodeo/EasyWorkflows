@@ -154,6 +154,15 @@ export class ComfyApi {
     }
 
     /**
+     * Get queue status
+     */
+    async getQueue() {
+        const res = await fetch(`/queue`);
+        if (!res.ok) throw new Error(`Queue Fetch Error: ${res.status}`);
+        return await res.json();
+    }
+
+    /**
      * Get history of a prompt
      * @param {String} promptId 
      */
