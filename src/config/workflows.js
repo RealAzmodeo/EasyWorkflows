@@ -16,7 +16,8 @@ import tryOnTemplate from './templates/tryon.json';
 import removeObjectsTemplate from './templates/remove_objects.json';
 import styleTransferTemplate from './templates/style_transfer.json';
 import cameraAngleTemplate from './templates/camera_angle.json';
-import wan22Template from './templates/wan22.json';
+import upscaleTemplate from './templates/upscale.json';
+import florence2Template from './templates/florence2_describe.json';
 
 // --- WORKFLOW LIST ---
 
@@ -41,6 +42,9 @@ export const workflows = [
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'changed the image into realistic photo', target: { nodeId: '435', field: 'value' } },
             { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '433:3', field: 'seed' } }
         ],
+        easyFlows: [
+            { targetWorkflow: 'upscale', label: 'Improve resolution?', mapOutputTo: 'image' }
+        ],
         apiTemplate: anime2realismTemplate
     },
     {
@@ -62,6 +66,9 @@ export const workflows = [
             { id: 'input_image', type: 'image', label: 'Source Image', easyLabel: 'Your Photo', target: { nodeId: '78', field: 'image' } },
             { id: 'prompt', type: 'text', label: 'Prompt', defaultValue: 'make this image into colormanga style', target: { nodeId: '435', field: 'value' } },
             { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '433:3', field: 'seed' } }
+        ],
+        easyFlows: [
+            { targetWorkflow: 'upscale', label: 'Make it even clearer?', mapOutputTo: 'image' }
         ],
         apiTemplate: anything2ColorMangaTemplate
     },
@@ -364,5 +371,28 @@ export const workflows = [
             { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '3', field: 'seed' } }
         ],
         apiTemplate: wan22Template
+    },
+    {
+        id: 'upscale',
+        name: 'Ultimate Upscale',
+        easyAction: 'Enhance Resolution',
+        icon: '💎',
+        category: 'Utility',
+        tags: ['upscale', 'hq', 'detail'],
+        description: "Breathe new life into your images with high-resolution upscaling and detail enhancement.",
+        easyMode: true,
+        tips: [
+            "Use a low denoise (0.3 - 0.4) to maintain the original look.",
+            "Choose '4x-UltraSharp' for best results with photos.",
+            "Tiled upscaling prevents memory errors on large images."
+        ],
+        outputNodeId: '8',
+        inputs: [
+            { id: 'image', type: 'image', label: 'Image to Upscale', easyLabel: 'Your Image', target: { nodeId: '1', field: 'image' } },
+            { id: 'upscale_by', type: 'number', label: 'Upscale By', defaultValue: 1.5, target: { nodeId: '3', field: 'upscale_by' } },
+            { id: 'denoise', type: 'number', label: 'Denoise (Detail)', defaultValue: 0.35, target: { nodeId: '3', field: 'denoise' } },
+            { id: 'seed', type: 'number', label: 'Seed', placeholder: 'Random', target: { nodeId: '3', field: 'seed' } }
+        ],
+        apiTemplate: upscaleTemplate
     }
 ];

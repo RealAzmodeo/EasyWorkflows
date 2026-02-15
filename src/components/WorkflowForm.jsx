@@ -27,7 +27,11 @@ export const WorkflowForm = ({
     suggestion,
     onApplySuggestion,
     onMediaReady,
-    isMediaReady
+    isMediaReady,
+    isDescribing,
+    onDescribe,
+    batchSize,
+    onBatchSizeChange
 }) => {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
@@ -142,7 +146,7 @@ export const WorkflowForm = ({
                                                 <div className="loading-bar-fill" style={{ width: `${progress}%` }}></div>
                                             </div>
                                             <span className="loading-text">
-                                                {isProcessing ? `CREATING... ${progress}%` : (isOutputVideo ? 'FINALIZING VIDEO...' : 'PREPARING PREVIEW...')}
+                                                {isProcessing ? (batchSize > 1 ? `CREATING BATCH... ${progress}%` : `CREATING... ${progress}%`) : (isOutputVideo ? 'FINALIZING VIDEO...' : 'PREPARING PREVIEW...')}
                                             </span>
                                         </div>
                                     </div>
@@ -337,13 +341,28 @@ export const WorkflowForm = ({
                                     {easyMode ? "INSTRUCTIONS" : "CREATIVE PROMPT"}
                                 </h3>
                                 {otherInputs.filter(i => i.id === 'prompt' && (!easyMode || i.easyLabel)).map(input => (
-                                    <div key={input.id} className="prompt-container" onClick={() => setIsPromptModalOpen(true)}>
-                                        <div className="prompt-display">
-                                            {values[input.id] || (easyMode ? input.easyLabel : "Enter your instructions here...")}
+                                    <div key={input.id} className="prompt-container-outer" style={{ position: 'relative' }}>
+                                        <div className="prompt-container" onClick={() => setIsPromptModalOpen(true)}>
+                                            <div className="prompt-display">
+                                                {values[input.id] || (easyMode ? input.easyLabel : "Enter your instructions here...")}
+                                            </div>
+                                            <button className="prompt-edit-icon">
+                                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+                                            </button>
                                         </div>
-                                        <button className="prompt-edit-icon">
-                                            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
-                                        </button>
+                                        {values['input_image'] && (
+                                            <button
+                                                className={`magic-eye-btn ${isDescribing ? 'loading' : ''}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDescribe && onDescribe('input_image');
+                                                }}
+                                                title="Magic Eye: Auto-describe image"
+                                                disabled={isDescribing || isProcessing}
+                                            >
+                                                {isDescribing ? '⏳' : '🔮'}
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -385,7 +404,26 @@ export const WorkflowForm = ({
                             )}
                         </div>
 
-                        {/* f. Generation Button */}
+                        {/* Generation Settings (Batch) */}
+                        {!isProcessing && isMediaReady && (
+                            <div className="generation-settings-bar">
+                                <div className="setting-item">
+                                    <span className="setting-label">BATCH QUANTITY</span>
+                                    <div className="batch-selector">
+                                        {[1, 2, 3, 4].map(num => (
+                                            <button
+                                                key={num}
+                                                className={`batch-btn ${batchSize === num ? 'active' : ''}`}
+                                                onClick={() => onBatchSizeChange && onBatchSizeChange(num)}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* f. Generation Button */}
                         {isProcessing ? (
                             <button

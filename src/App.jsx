@@ -132,6 +132,8 @@ function App() {
   });
   const [suggestion, setSuggestion] = useState(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [batchSize, setBatchSize] = useState(1);
+  const [isDescribing, setIsDescribing] = useState(false);
 
   const api = useRef(new ComfyApi());
   const processingRef = useRef(false);
@@ -589,6 +591,62 @@ function App() {
     if (file) setFormValues(prev => ({ ...prev, [id]: file }));
   };
 
+  const handleDescribe = async (inputId) => {
+    const file = formValues[inputId];
+    if (!file || isDescribing) return;
+
+    setIsDescribing(true);
+    setLogs(prev => [...prev, 'Analyzing image with Florence2...']);
+
+    try {
+      // 1. Upload
+      const uploadRes = await api.current.uploadImage(file);
+
+      // 2. Prepare Template
+      const workflow = JSON.parse(JSON.stringify(florence2Template));
+      workflow["1"].inputs.image = uploadRes.name;
+
+      // 3. Queue
+      const res = await api.current.queuePrompt(workflow);
+      const promptId = res.prompt_id;
+
+      // 4. Poll for Result (Florence2 is fast)
+      let attempts = 0;
+      const checkResult = async () => {
+        const historyRes = await api.current.getHistory(promptId);
+        const result = historyRes[promptId];
+
+        if (result && result.outputs) {
+          // Florence2 output is usually in node 4 (PrimitiveString) or 3 (Run)
+          // Based on my template, it's node 4 or the 'description' in node 3
+          const description = result.outputs["4"]?.text?.[0] || result.outputs["3"]?.description?.[0];
+
+          if (description) {
+            handleValueChange('prompt', description);
+            setLogs(prev => [...prev, 'Magic Eye: Image described!']);
+            setIsDescribing(false);
+            return;
+          }
+        }
+
+        if (attempts < 20) {
+          attempts++;
+          setTimeout(checkResult, 1000);
+        } else {
+          setLogs(prev => [...prev, 'Description timed out.']);
+          setIsDescribing(false);
+        }
+      };
+
+      checkResult();
+
+    } catch (err) {
+      console.error(err);
+      setLogs(prev => [...prev, `Magic Eye Error: ${err.message}`]);
+      setIsDescribing(false);
+    }
+  };
+
   const handleValueChange = (id, value) => {
     setFormValues(prev => {
       const next = { ...prev, [id]: value };
@@ -747,6 +805,10 @@ function App() {
               onSubmit={handleWorkflowSubmit}
               onCancel={handleCancel}
               isProcessing={isProcessing}
+              batchSize={batchSize}
+              onBatchSizeChange={setBatchSize}
+              isDescribing={isDescribing}
+              onDescribe={handleDescribe}
               isMediaReady={isMediaReady}
               onMediaReady={() => setIsMediaReady(true)}
               progress={progress}

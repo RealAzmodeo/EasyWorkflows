@@ -2769,6 +2769,7 @@ input:checked+.slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
+
 /* --- PREVIEW HOVER OVERLAY --- */
 .one-page-preview-container {
   position: relative;
@@ -2839,7 +2840,210 @@ input:checked+.slider:before {
 }
 
 /* --- OUTPUT OVERLAY LOADING --- */
-.preview-and-loading-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-.overlay-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--bg-content, #0a0a0a); border-radius: var(--radius-lg); }
-.media-hidden { opacity: 0; pointer-events: none; }
-.output-media-container { width: 100%; height: 100%; transition: opacity 0.4s ease; }
+.preview-and-loading-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: var(--bg-content, #0a0a0a);
+  border-radius: var(--radius-lg);
+}
+
+.media-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.output-media-container {
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.4s ease;
+}
+
+/* --- Generation Settings & Batch Selector --- */
+.generation-settings-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: rgba(var(--primary-rgb), 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(var(--primary-rgb), 0.1);
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setting-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.batch-selector {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.batch-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 36px;
+  height: 28px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.batch-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.batch-btn.active {
+  background: var(--primary-accent);
+  color: white;
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.4);
+}
+
+/* --- Suggestion Banner Enhancement --- */
+.suggestion-banner {
+  background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.15), rgba(var(--primary-rgb), 0.05));
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.suggestion-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.suggestion-icon {
+  font-size: 1.2rem;
+  background: rgba(var(--primary-rgb), 0.2);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.suggestion-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--primary-accent);
+}
+
+.suggestion-desc {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.suggestion-action-btn {
+  background: var(--primary-accent);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suggestion-action-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* --- Magic Eye Button --- */
+.magic-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(var(--primary-rgb), 0.1);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1.1rem;
+}
+
+.magic-eye-btn:hover:not(:disabled) {
+  background: rgba(var(--primary-rgb), 0.2);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.3);
+}
+
+.magic-eye-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.magic-eye-btn.loading {
+  animation: pulse-magic 1.5s infinite;
+}
+
+@keyframes pulse-magic {
+  0% {
+    transform: translateY(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.4);
+  }
+
+  70% {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 0 0 10px rgba(var(--primary-rgb), 0);
+  }
+
+  100% {
+    transform: translateY(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0);
+  }
+}
+
+/* Ensure prompt container is relative for magic eye positioning */
+.prompt-container-outer:has(.magic-eye-btn) {
+  position: relative;
+}

@@ -1,0 +1,41 @@
+{
+    "1": {
+        "inputs": {
+            "image": "example.png"
+        },
+        "class_type": "LoadImage"
+    },
+    "2": {
+        "inputs": {
+            "model": "florence2-large-ft.safetensors",
+            "precision": "fp16",
+            "attention": "sdpa"
+        },
+        "class_type": "Florence2Loader"
+    },
+    "3": {
+        "inputs": {
+            "image": [
+                "1",
+                0
+            ],
+            "florence2_model": [
+                "2",
+                0
+            ],
+            "text_input": "describe the image in detail",
+            "task": "more_detailed_caption",
+            "fill_mask": true
+        },
+        "class_type": "Florence2Run"
+    },
+    "4": {
+        "inputs": {
+            "text": [
+                "3",
+                2
+            ]
+        },
+        "class_type": "PrimitiveStringMultiline"
+    }
+}
