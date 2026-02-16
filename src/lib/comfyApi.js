@@ -181,6 +181,21 @@ export class ComfyApi {
         return await res.json();
     }
 
+    /**
+     * Get URL for a file
+     * @param {String} filename 
+     * @param {String} subfolder 
+     * @param {String} type 
+     */
+    getFileUrl(filename, subfolder, type = 'output') {
+        const query = new URLSearchParams({
+            filename,
+            subfolder: subfolder || '',
+            type
+        });
+        return `/view?${query.toString()}`;
+    }
+
     // --- Event Handling ---
 
     on(event, callback) {

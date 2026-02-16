@@ -10,16 +10,57 @@ import { Gallery } from './components/Gallery';
 import { ImageComparisonSlider } from './components/ImageComparisonSlider';
 import { FilePreview } from './components/FilePreview';
 import { urlToFile, saveFormToLocalStorage, loadFormFromLocalStorage, getFunStatus, saveHistoryToLocalStorage, loadHistoryFromLocalStorage } from './lib/utils';
+import ImageEditor from './components/ImageEditor';
+import vfxEditorTemplate from './config/templates/vfx_editor.json';
 
 // Helper Lightbox Component to manage ObjectURLs for Files
-const Lightbox = ({ data, history, onClose, onDownload, onShare, onDelete, onChange, onRemove, onImageClick }) => {
+const Lightbox = ({ data, history, onClose, onDownload, onShare, onDelete, onChange, onRemove, onEdit }) => {
   const [currentIndex, setCurrentIndex] = useState(() => {
     if (!history) return -1;
     return history.findIndex(img => img.url === data.url);
   });
 
-  const activeImage = currentIndex !== -1 ? history[currentIndex] : data;
+  // Sync internal state if data prop changes (e.g. initial open)
+  useEffect(() => {
+    if (history) {
+      const idx = history.findIndex(img => img.url === data.url);
+      if (idx !== -1) setCurrentIndex(idx);
+    }
+  }, [data, history]);
+
+  const activeImage = (currentIndex !== -1 && history && history[currentIndex]) ? history[currentIndex] : data;
   const [displayUrl, setDisplayUrl] = useState(null);
+
+  const handleEditClick = () => {
+    if (onEdit) {
+      onEdit({
+        displayUrl: displayUrl,
+        type: 'output', // Usually output if in gallery
+        filename: activeImage.filename
+      });
+    }
+  };
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+  };
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    if (history && currentIndex < history.length - 1) setCurrentIndex(prev => prev + 1);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') handlePrev(e);
+      if (e.key === 'ArrowRight') handleNext(e);
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, history]);
 
   useEffect(() => {
     let url = null;
@@ -34,18 +75,36 @@ const Lightbox = ({ data, history, onClose, onDownload, onShare, onDelete, onCha
     return () => {
       if (url) URL.revokeObjectURL(url);
     }
-  }, [activeImage.url]);
+  }, [activeImage]);
 
   if (!displayUrl) return null;
+
+  const showNav = history && history.length > 1;
 
   return (
     <div className="lightbox-overlay" onClick={onClose}>
       <button className="lightbox-close" onClick={onClose}>✕</button>
+
+      {showNav && (
+        <>
+          {currentIndex > 0 && (
+            <div className="lightbox-nav-arrow left" onClick={handlePrev}>
+              <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" /></svg>
+            </div>
+          )}
+          {currentIndex < history.length - 1 && (
+            <div className="lightbox-nav-arrow right" onClick={handleNext}>
+              <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" /></svg>
+            </div>
+          )}
+        </>
+      )}
+
       <div className="lightbox-content" onClick={e => e.stopPropagation()}>
         {activeImage.isVideo ? (
           <video
             src={displayUrl}
-            style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '12px' }}
+            style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '12px' }}
             autoPlay
             muted
             loop
@@ -59,6 +118,12 @@ const Lightbox = ({ data, history, onClose, onDownload, onShare, onDelete, onCha
         <div className="lightbox-actions-bar">
           {activeImage.type === 'output' || activeImage.filename ? (
             <>
+              {/* EDIT BUTTON */}
+              <button className="lightbox-action-btn" onClick={handleEditClick} title="Edit Image">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+                EDIT
+              </button>
+
               <button className="lightbox-action-btn" onClick={() => onDownload(activeImage.url, activeImage.filename || 'output.png')}>
                 <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
                 SAVE
@@ -78,6 +143,10 @@ const Lightbox = ({ data, history, onClose, onDownload, onShare, onDelete, onCha
             </>
           ) : (
             <>
+              <button className="lightbox-action-btn" onClick={handleEditClick} title="Edit Image">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+                EDIT
+              </button>
               <button className="lightbox-action-btn" onClick={() => onChange(activeImage.inputId)}>
                 <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" /></svg>
                 CHANGE
@@ -132,6 +201,8 @@ function App() {
   });
   const [suggestion, setSuggestion] = useState(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [editingImage, setEditingImage] = useState(null); // { url, type, inputId, filename }
+  const [isEditorProcessing, setIsEditorProcessing] = useState(false);
 
   const api = useRef(new ComfyApi());
   const processingRef = useRef(false);
@@ -345,7 +416,7 @@ function App() {
               item.filename.toLowerCase().endsWith('.gif')
             ));
 
-          const url = `/view?filename=${item.filename}&subfolder=${item.subfolder}&type=${item.type}`;
+          const url = api.current.getFileUrl(item.filename, item.subfolder, item.type);
 
           setCurrentImage(url);
           setHistory(prev => {
@@ -558,6 +629,64 @@ function App() {
     }
   };
 
+  const handleEditSave = async (editData) => {
+    // alert(`App: Recibido! editingImage=${!!editingImage}`); // REMOVED
+    if (!editingImage) return;
+    setIsEditorProcessing(true);
+
+    try {
+      console.log("--- BAKE START (LOCAL) ---");
+      setLogs(prev => [...prev, 'Save: Capturing local canvas...']);
+
+      const { bakedDataUrl } = editData;
+      if (!bakedDataUrl) throw new Error("No baked image data received from editor.");
+
+      // 1. Convert Base64 to File
+      const bakedFile = await urlToFile(bakedDataUrl, `edit_${Date.now()}.png`);
+
+      // 2. Upload the result to ComfyUI (so it can be used as input)
+      setLogs(prev => [...prev, 'Save: Uploading result to server...']);
+      const uploadRes = await api.current.uploadImage(bakedFile);
+      const serverUrl = api.current.getFileUrl(uploadRes.name, uploadRes.subfolder, uploadRes.type);
+
+      // 3. Update Input/Workflow
+      setLogs(prev => [...prev, 'Save: Updating inputs...']);
+
+      if (editingImage.type === 'input') {
+        // Update the specific input field
+        handleValueChange(editingImage.inputId, bakedFile);
+      } else {
+        // It was an output or gallery image -> Set as MAIN input for current workflow
+        if (activeWorkflow && activeWorkflow.inputs) {
+          const targetInput = activeWorkflow.inputs.find(i => i.type === 'image');
+          if (targetInput) {
+            handleValueChange(targetInput.id, bakedFile);
+          }
+        }
+        // Add to history
+        const newOutput = {
+          url: serverUrl,
+          type: 'output',
+          filename: uploadRes.name,
+          timestamp: Date.now(),
+          workflow: 'Editor'
+        };
+        setHistory(prev => [newOutput, ...prev]);
+        setCurrentImage(serverUrl);
+      }
+
+      setLogs(prev => [...prev, 'Saved successfully!']);
+      setEditingImage(null);
+      setIsEditorProcessing(false);
+
+    } catch (err) {
+      console.error(err);
+      alert(`SAVE ERROR: ${err.message}`);
+      setLogs(prev => [...prev, `Error: ${err.message}`]);
+      setIsEditorProcessing(false);
+    }
+  };
+
   const activeWorkflow = workflows.find(w => w.id === selectedWorkflowId);
 
   const handleGalleryDragStart = (e, img) => {
@@ -745,6 +874,16 @@ function App() {
               onChange={handleValueChange}
               onFileChange={handleValueChange}
               onSubmit={handleWorkflowSubmit}
+              onEdit={(inputId) => {
+                const file = formValues[inputId];
+                if (file) {
+                  setEditingImage({
+                    displayUrl: URL.createObjectURL(file),
+                    type: 'input',
+                    inputId
+                  });
+                }
+              }}
               onCancel={handleCancel}
               isProcessing={isProcessing}
               isMediaReady={isMediaReady}
@@ -865,6 +1004,10 @@ function App() {
               onDownload={handleDownloadImage}
               onShare={handleShareImage}
               onDelete={handleDeleteImage}
+              onEdit={(editInfo) => {
+                setEditingImage({ ...editInfo, displayUrl: editInfo.displayUrl });
+                setLightboxImage(null);
+              }}
               onChange={(inputId) => {
                 const fileInput = document.querySelector(`input[data-inputid="${inputId}"]`);
                 fileInput?.click();
@@ -874,6 +1017,15 @@ function App() {
                 handleValueChange(inputId, null);
                 setLightboxImage(null);
               }}
+            />
+          )}
+
+          {editingImage && (
+            <ImageEditor
+              image={editingImage.displayUrl}
+              isProcessing={isEditorProcessing}
+              onClose={() => setEditingImage(null)}
+              onSave={handleEditSave}
             />
           )}
         </div>

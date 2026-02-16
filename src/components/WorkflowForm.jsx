@@ -27,7 +27,8 @@ export const WorkflowForm = ({
     suggestion,
     onApplySuggestion,
     onMediaReady,
-    isMediaReady
+    isMediaReady,
+    onEdit
 }) => {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
@@ -220,6 +221,16 @@ export const WorkflowForm = ({
                                                     >
                                                         ✕
                                                     </button>
+                                                    <button
+                                                        className="input-edit-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onEdit && onEdit(imageInputs[0].id);
+                                                        }}
+                                                        title="Edit Image"
+                                                    >
+                                                        ✎
+                                                    </button>
                                                 </>
                                             ) : (
                                                 <div className="slot-empty">
@@ -292,6 +303,16 @@ export const WorkflowForm = ({
                                                         title="Remove Image"
                                                     >
                                                         ✕
+                                                    </button>
+                                                    <button
+                                                        className="input-edit-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onEdit && onEdit(imageInputs[1].id);
+                                                        }}
+                                                        title="Edit Image"
+                                                    >
+                                                        ✎
                                                     </button>
                                                 </>
                                             ) : (
@@ -447,11 +468,8 @@ export const WorkflowForm = ({
                                                             key={i}
                                                             className="tip-tag"
                                                             onClick={() => {
-                                                                const current = values['prompt'] || '';
-                                                                if (!current.includes(word)) {
-                                                                    const newVal = current ? `${current}, ${word}` : word;
-                                                                    onChange('prompt', newVal);
-                                                                }
+                                                                // User requested REPLACE behavior, not append.
+                                                                onChange('prompt', word);
                                                             }}
                                                         >
                                                             {word}
